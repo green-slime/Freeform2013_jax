@@ -2,6 +2,8 @@ import BSurface
 import config as cfg
 import time
 import pynvml
+from jax import vmap
+import jax.numpy as jnp
 def writeToObj(surface: BSurface,Pij,objname=cfg.objname) -> None:
     print("开始写入obj文件...")
     start_time=time.time()
@@ -20,11 +22,17 @@ def writeToObj(surface: BSurface,Pij,objname=cfg.objname) -> None:
         for j in range(n):
             for i in range(m):
                 objfile.write(f"v {x[i]} {y[j]} 0\n")
-        
+                
+        indices_for_obj=jnp.array([(j,i) for j in range(n) for i in range(m)])
+        z_result=vmap(lambda i,j:BSurface.query_S(i,j,gNui3_for_obj,gNvi3_for_obj,Pij))(indices_for_obj[:,1],indices_for_obj[:,0])
+        for j in range(n):
+            for i in range(m):
+                objfile.write(f"v {x[i]} {y[j]} {z_result[j*m+i]}\n")
+        '''
         for j in range(n):
             for i in range(m):
                 objfile.write(f"v {x[i]} {y[j]} {BSurface.query_S(i,j,gNui3_for_obj,gNvi3_for_obj,Pij)}\n")
-        
+        '''
         # 面
         for j in range(n - 1):
             for i in range(m - 1):
@@ -63,7 +71,7 @@ def find_idle_gpu():
         handle = pynvml.nvmlDeviceGetHandleByIndex(i)
         info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         
-        if info.used <= 10000 * 1024 * 1024:
+        if info.used <= 4000 * 1024 * 1024:
             return i
         else:
             #print(f"gpu {i} using memory {info.used/1024/1024} mb")

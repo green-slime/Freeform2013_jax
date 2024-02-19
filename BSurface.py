@@ -118,8 +118,10 @@ class BSurface:
             self.ddNvi3.append(_ddNvi3)
            
     def calculateAllNsOnGrid(self):
-        grid_u=np.arange(self.M+3)/(self.M+2)
-        grid_v=np.arange(self.N+3)/(self.N+2)
+        # here we use M_sample and N_sample to calculate the grid value of Nui3 and Nvi3
+        Ms=cfg.M_sample;Ns=cfg.N_sample
+        grid_u=np.arange(Ms+1)/(Ms)
+        grid_v=np.arange(Ns+1)/(Ns)
         self.gNui3 = []
         self.gdNui3 = []
         self.gddNui3 = []
@@ -128,7 +130,7 @@ class BSurface:
             _gNui3 = []
             _gdNui3 = []
             _gddNui3 = []
-            for k in range(self.M+3):
+            for k in range(Ms+1):
                 _gNui3.append(self.Nui3[i](grid_u[k]))
                 _gdNui3.append(self.dNui3[i](grid_u[k]))
                 _gddNui3.append(self.ddNui3[i](grid_u[k]))
@@ -144,7 +146,7 @@ class BSurface:
             _gNvi3 = []
             _gdNvi3 = []
             _gddNvi3 = []
-            for k in range(self.N+3):
+            for k in range(Ns+1):
                 _gNvi3.append(self.Nvi3[j](grid_v[k]))
                 _gdNvi3.append(self.dNvi3[j](grid_v[k]))
                 _gddNvi3.append(self.ddNvi3[j](grid_v[k]))
@@ -160,8 +162,8 @@ class BSurface:
         self.gddNvi3=jnp.array(self.gddNvi3)
             
     def check(self):
-        for k in range(self.M+3):
-            for i in range(self.N+3):
+        for k in range(cfg.M_sample+1):
+            for i in range(self.M+3):
                 print("v={}/{} gNui3[{}][{}]={}".format(k, self.M+3 - 1, i, k, self.gNui3[i][k]))
 
         input("Press Enter to continue...")  

@@ -36,20 +36,28 @@ def loss_func(dict,Pij,indices,img_dict,using_varyweight_flag,flag_printout=Fals
     no=cfg.no;ni=cfg.ni;a=cfg.a;tz=cfg.tz
     #end_time=time.time()
     #print('dict_find time cost',end_time-start_time,'s')
-    
+    '''
     res=vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
+    '''   
+    chunk_size=cfg.sample_chunk_size
+    res=jnp.array([])
+    for i in range(0, cfg.totalSampleNum, chunk_size):
+        temp_array=vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[i:i+chunk_size,1],indices[i:i+chunk_size,0],indices[i:i+chunk_size,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
+        res=jnp.concatenate([res,temp_array])
+    #res=jnp.concatenate([vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[i:i+chunk_size,1],indices[i:i+chunk_size,0],indices[i:i+chunk_size,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict) for i in range(0, cfg.totalSampleNum, chunk_size)])
+    
     #jax.debug.print("res:{}",res)
     
     # let inner loss and edge loss has the same maximum
     condition=indices[:,2]
-    zero_array=jnp.zeros((1,(cfg.M+3)*(cfg.N+3)))
+    zero_array=jnp.zeros((1,(cfg.M_sample+1)*(cfg.N_sample+1)))
     true_result=jnp.where(condition,res,zero_array) # true means inner
     false_result=jnp.where(condition,zero_array,res) # false means on boundary
     inner_max=jnp.max(jnp.abs(true_result));boundary_max=jnp.max(jnp.abs(false_result))
     inner_norm=jnp.linalg.norm(true_result);boundary_norm=jnp.linalg.norm(false_result)
-    varyweight=lax.cond(boundary_norm<1e-12,lambda x:0.0,lambda x:inner_norm/boundary_norm,0) # in case that boundary_norm=0
+    varyweight=lax.cond(boundary_norm<1e-12,lambda x:0.0,lambda x:10**jnp.floor((jnp.log10(inner_norm/boundary_norm))),0) # in case that boundary_norm=0
     #varyweight=lax.cond(boundary_max<1e-12,lambda x:0.0,lambda x:inner_max/boundary_max,0) # in case that boundary_norm=0
-    #termsweight=jnp.sqrt(cfg.M+3)/2
+    #termsweight=jnp.sqrt(cfg.M_sample+1)/2
     termsweight=1.0
     weight=lax.cond(using_varyweight_flag,lambda x:varyweight,lambda x:termsweight,0) # only use varyweight when flag_using_varyweight=True, else consider terms
     lax.cond(flag_printout,lambda x:jax.debug.print("inner_result={}, boundary_result={}, weight={}, varyweight={}",inner_norm,boundary_norm,weight,varyweight),lambda x:None,0)
@@ -59,10 +67,11 @@ def loss_func(dict,Pij,indices,img_dict,using_varyweight_flag,flag_printout=Fals
     return res
 
 def make_indices():
-    # don't change with the same cfg.M and cfg.N
+    # don't change with the same cfg.M_sample and cfg.N_sample
     start_time=time.time()
-    indices = jnp.array([(j,i) for j in range(cfg.N + 3) for i in range(cfg.M + 3)])    
-    bool_mask = (1 <= indices[:, 1]) & (indices[:, 1] <= cfg.M + 1) & (1 <= indices[:, 0]) & (indices[:, 0] <= cfg.N + 1)
+    Ms=cfg.M_sample;Ns=cfg.N_sample
+    indices = jnp.array([(j,i) for j in range(Ns+1) for i in range(Ms+1)])    
+    bool_mask = (1 <= indices[:, 1]) & (indices[:, 1] <= Ms-1) & (1 <= indices[:, 0]) & (indices[:, 0] <= Ns-1)
     # Expand the original array with the boolean mask
     indices = jnp.concatenate([indices, bool_mask[:, jnp.newaxis]], axis=1)
     # now indices looks like (j,i,bool)
@@ -81,18 +90,29 @@ def Jacobi_for_one_pos(i,j,dict,Pij,indices,avg_len,img_dict,using_varyweight_fl
 def calculate_Jacobi(dict,Pij,indices,img_dict,using_varyweight_flag):
     #res_mat=jnp.empty((0,cfg.totalNum))
     # calculate Jacobi matrix
-    epsilon=10e-6
+    epsilon=10e-6    
     # see norm/sqrt(size) as the average length of each element of Pij
-    avg_len=epsilon*jnp.linalg.norm(Pij)/jnp.sqrt(cfg.totalNum)   
-    res_mat=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices[:,1],indices[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
-    res_mat=jnp.transpose(res_mat)
+    avg_len=epsilon*jnp.linalg.norm(Pij)/jnp.sqrt(cfg.totalBasisNum)   
+    '''
+    indices_for_Pij=jnp.array([(j,i) for j in range(cfg.N+3) for i in range(cfg.M+3)])
+    res=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
+    '''
+    indices_for_Pij=jnp.array([(j,i) for j in range(cfg.N+3) for i in range(cfg.M+3)])
+    chunk_size=cfg.variable_chunk_size
     
-    return res_mat
+    res=jnp.empty((0,cfg.totalSampleNum)) # res_init is a 0*totalSampleNum 2-D array, which would be concatenated with temp_array, which is totalBasisNum*totalSampleNum, in axis=0
+    for i in range(0, cfg.totalBasisNum, chunk_size):
+        temp_array=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
+        res=jnp.concatenate([res,temp_array])
+    #res=jnp.concatenate([vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag) for i in range(0, cfg.totalBasisNum, chunk_size)])
+    
+    res=jnp.transpose(res)
+    return res
 
 ### funcs for train()
 @jit 
 def solve_delta_p(A,mu,g):
-    return jnp.linalg.solve(A+mu*jnp.eye(cfg.totalNum),g)
+    return jnp.linalg.solve(A+mu*jnp.eye(cfg.totalBasisNum),g)
 @jit 
 def update_rho_p_f(Pij,delta_p,mu,g,surface_dict,indices,epsilon_p,img_dict,using_varyweight_flag):
     p_new=Pij+delta_p.reshape((cfg.N+3,cfg.M+3))                
@@ -132,8 +152,8 @@ def train_using_LM():
     indices=make_indices()
     min_loss=1e16
     last_loss=0
-    using_varyweight_flag=False
-    #using_varyweight_flag=True
+    #using_varyweight_flag=False
+    using_varyweight_flag=True
     has_changed_method_flag=False
     end_varyweight_flag=False # when iter end, using_varyweight_flag=False
     method_loss=-1
@@ -141,7 +161,7 @@ def train_using_LM():
     k=0;v=2;J=calculate_Jacobi(surface_dict,Pij,indices,img_dict,using_varyweight_flag);epsilon_p=-loss_func(surface_dict,Pij,indices,img_dict,using_varyweight_flag,True)
     epsilon_g_norm=1e-8;epsilon_deltap_norm=1e-12;target_loss=1e-8
     epsilon_relative=1e-8
-    max_iter=1000
+    max_iter=2000
     A=jnp.dot(jnp.transpose(J),J);g=jnp.dot(jnp.transpose(J),epsilon_p);tao=1e-6
     mu=tao*jnp.max(jnp.diag(A))
     stop=(jnp.max(g)<=epsilon_g_norm)
@@ -153,7 +173,7 @@ def train_using_LM():
             delta_p=solve_delta_p(A,mu,g)
             if(condition1(delta_p,epsilon_deltap_norm,Pij)&(~first_time_flag)):
                 stop=True
-                print("meet condition1")
+                print("meet stop condition")
                 break
             else:               
                 rho,p_new,f_new=update_rho_p_f(Pij,delta_p,mu,g,surface_dict,indices,epsilon_p,img_dict,using_varyweight_flag)
@@ -179,7 +199,7 @@ def train_using_LM():
             logfile.write(f"iter:{k} loss:{loss} time cost:{time.time()-start_time}s\n")
             
             
-        if(k>1 and (abs(loss-last_loss)<1e-16 or stop)):
+        if(k>1 and (abs(loss-last_loss)<1e-16 or stop or k==max_iter-1)):
             str=""
             if(abs(loss-last_loss)<1e-16):
                 str="relative error reached."
@@ -188,7 +208,21 @@ def train_using_LM():
             print("converged because of "+str)
             print("end at iter:",k,"loss:",loss,"time cost:",time.time()-start_time,"s")
             logfile.write(f"iter:{k} loss:{loss} time cost:{time.time()-start_time}s\n")
-            break
+            #break
+            #let's do unvaryweight once, from line193-line204
+            if(using_varyweight_flag==True):
+                print("\nNow using_varyweight_flag=False\n")
+                logfile.write(f"Now using_varyweight_flag=False\n")
+                using_varyweight_flag=False
+                #update parameters
+                v=2;J=calculate_Jacobi(surface_dict,Pij,indices,img_dict,using_varyweight_flag);epsilon_p=-loss_func(surface_dict,Pij,indices,img_dict,using_varyweight_flag,True)
+                A=jnp.dot(jnp.transpose(J),J);g=jnp.dot(jnp.transpose(J),epsilon_p)
+                mu=tao*jnp.max(jnp.diag(A))
+                stop=False
+                max_iter*=2
+                continue
+            else:
+                break
         last_loss=loss
         '''
         if(k>1 and (abs(loss-last_loss)<1e-16 or stop)):
@@ -235,6 +269,7 @@ def train_using_LM():
 if __name__ == "__main__":
     jax.config.update("jax_enable_x64", True)
     jax.config.update('jax_platform_name', 'gpu')
+    #XLA_PYTHON_CLIENT_PREALLOCATE=False
     # 查找空闲的GPU
     try:
         idle_gpu_index = uf.find_idle_gpu()
