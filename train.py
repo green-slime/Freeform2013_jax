@@ -105,7 +105,7 @@ def calculate_Jacobi(dict,Pij,indices,img_dict,using_varyweight_flag):
         temp_array=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
         res=jnp.concatenate([res,temp_array])
     #res=jnp.concatenate([vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag) for i in range(0, cfg.totalBasisNum, chunk_size)])
-    #111
+    #1111
     res=jnp.transpose(res)
     return res 
 
