@@ -3,6 +3,8 @@ import config as cfg
 import time
 import pynvml
 from jax import vmap
+import os
+import sys
 import jax.numpy as jnp
 def writeToObj(surface: BSurface,Pij,objname=cfg.objname) -> None:
     print("开始写入obj文件...")
@@ -58,11 +60,13 @@ def writeToObj(surface: BSurface,Pij,objname=cfg.objname) -> None:
     end_time=time.time()
     print("写入obj文件用时:",end_time-start_time,"s")
     
-    
+
+# 查找空闲的GPU   
 class NoIdleGPUError(Exception):
     def __init__(self):
         super().__init__("没有找到空闲的GPU")                
-def find_idle_gpu():
+        
+def return_idle_gpu_index():
     pynvml.nvmlInit()
     
     device_count = pynvml.nvmlDeviceGetCount()
@@ -78,3 +82,28 @@ def find_idle_gpu():
             pass
         
     raise NoIdleGPUError()  # 抛出自定义异常
+
+def find_idle_gpu():
+    try:
+        idle_gpu_index = return_idle_gpu_index()
+        print("即将使用GPU：", idle_gpu_index)
+        os.environ['CUDA_VISIBLE_DEVICES']=str(idle_gpu_index)
+    except NoIdleGPUError:
+        print("没有找到空闲的GPU，发生错误")
+        sys.exit()
+        
+import numpy as np
+def saveToDict(dict,dict_name=cfg.dict_name):
+    try:
+        np.save(dict_name,dict)
+        print("dict has been saved to "+dict_name)
+    except (IOError, OSError) as e:
+        print("Failed to save data:", e)
+        
+def readFromDict(dict_name=cfg.dict_name):
+    try:
+        loaded_data = np.load(dict_name,allow_pickle=True).item() # need to clarify allow_pickle here if the numpy version high
+        return loaded_data
+    except (IOError, OSError) as e:
+        print("Failed to load data:", e)
+

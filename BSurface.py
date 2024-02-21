@@ -201,6 +201,56 @@ class BSurface:
     def query_dict_for_obj(self):
         res={"gNui3_for_obj":self.gNui3_for_obj,"gNvi3_for_obj":self.gNvi3_for_obj}
         return res
+    
+    def calculateAllNsOnGrid_forRender(self):
+        #print("Now calculate grid value for obj...")
+        rm=cfg.rm 
+        rn=cfg.rn
+        #start_time=time.time()
+        grid_u=np.arange(rm+1)/(rm)
+        grid_v=np.arange(rn+1)/(rn)
+        self.gNui3_for_render = []
+        self.gdNui3_for_render = []
+        self.gddNui3_for_render = []
+
+        for i in range(len(self.Nui3)):
+            _gNui3_for_render = []
+            _gdNui3_for_render = []
+            _gddNui3_for_render = []
+            for k in range(rm):
+                _gNui3_for_render.append(self.Nui3[i](grid_u[k]))
+                _gdNui3_for_render.append(self.dNui3[i](grid_u[k]))
+                _gddNui3_for_render.append(self.ddNui3[i](grid_u[k]))
+            self.gNui3_for_render.append(_gNui3_for_render)
+            self.gdNui3_for_render.append(_gdNui3_for_render)
+            self.gddNui3_for_render.append(_gddNui3_for_render)
+
+        self.gNvi3_for_render = []
+        self.gdNvi3_for_render = []
+        self.gddNvi3_for_render = []
+
+        for j in range(len(self.Nvi3)):
+            _gNvi3_for_render = []
+            _gdNvi3_for_render = []
+            _gddNvi3_for_render = []
+            for k in range(rn):
+                _gNvi3_for_render.append(self.Nvi3[j](grid_v[k]))
+                _gdNvi3_for_render.append(self.dNvi3[j](grid_v[k]))
+                _gddNvi3_for_render.append(self.ddNvi3[j](grid_v[k]))
+            self.gNvi3_for_render.append(_gNvi3_for_render)
+            self.gdNvi3_for_render.append(_gdNvi3_for_render)
+            self.gddNvi3_for_render.append(_gddNvi3_for_render)
+            
+        self.gNui3_for_render=jnp.array(self.gNui3_for_render)
+        self.gNvi3_for_render=jnp.array(self.gNvi3_for_render)
+        self.gdNui3_for_render=jnp.array(self.gdNui3_for_render)
+        self.gdNvi3_for_render=jnp.array(self.gdNvi3_for_render)
+        self.gddNui3_for_render=jnp.array(self.gddNui3_for_render)
+        self.gddNvi3_for_render=jnp.array(self.gddNvi3_for_render)
+
+    def query_dict_for_render(self):
+        res={"gNui3_for_render":self.gNui3_for_render,"gNvi3_for_render":self.gNvi3_for_render,"gdNui3_for_render":self.gdNui3_for_render,"gdNvi3_for_render":self.gdNvi3_for_render,"gddNui3_for_render":self.gddNui3_for_render,"gddNvi3_for_render":self.gddNvi3_for_render}
+        return res
 
 @jit 
 def query_S_one_pos(i,j,uk,vk,gNui3,gNvi3,Pij):

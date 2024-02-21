@@ -1,3 +1,5 @@
 result/
+result_new/
+result_test/
 __pycache__/
 jax instruction.txt

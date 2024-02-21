@@ -9,11 +9,11 @@ import density_func as df
 
 
 @jit
-def args_calculation(i, j, gNui3, gNvi3, Pij, gdNui3, gdNvi3, gddNui3, gddNvi3, ni, no):
+def args_calculation(i, j, gNui3, gNvi3, Pij, gdNui3, gdNvi3, gddNui3, gddNvi3, ni, no, cols=cfg.M_sample):
     start_time = time.time()
     x = cfg.xmin+i*cfg.h1
     y = cfg.ymin+j*cfg.h2
-    curIndex = j*(cfg.M_sample+1)+i
+    curIndex = j*(cols+1)+i
     z = BSurface.query_S(i, j, gNui3, gNvi3, Pij)
     zx = BSurface.query_Su(i, j, gdNui3, gNvi3, Pij)/(cfg.xmax-cfg.xmin)
     zy = BSurface.query_Sv(i, j, gNui3, gdNvi3, Pij)/(cfg.ymax-cfg.ymin)

@@ -1,9 +1,9 @@
 # M,N controls the B-Spline, the number of control points is M+3 * N+3
-M = 17
+M = 2
 N = M
 variable_chunk_size = 20*20
 # M_sample,N_sample controls the sample points in the target plane, the number of sample points is M_sample*N_sample
-M_sample = 1024
+M_sample = 5
 N_sample = M_sample
 sample_chunk_size = 300**2
 # half_width, half_height are the half width and half height of the target domain
@@ -36,14 +36,26 @@ a = 1-pow(ni/no, 2)
 
 # file
 name = target_img_path.split(
-    '/')[-1].split('.')[0]+"_once_vary_weight_decay32"  # like "sorcery"
+    '/')[-1].split('.')[0]
+#+"_once_vary_weight_decay32"  # like "sorcery"
 # name = "circle_vary_weight" # one iter vary and one nonvary, when low loss, using nonvary
 # using_varyweight_flag is always true
 # name = "circle_once_vary_weight_decay32"
-log_filename = f"./result/{name}_{M}_{M_sample}_output.txt"
-init_objname = f"./result/{name}_{M}_{M_sample}_init.obj"
-objname = f"./result/{name}_{M}_{M_sample}.obj"
+folder_name = "./result_test/"
+prefix_name = folder_name + f"{name}_{M}_{M_sample}"
+log_filename = prefix_name + "_output.txt"
+init_objname = prefix_name + "_init.obj"
+objname = prefix_name + ".obj"
+render_picname = prefix_name + "_img.png"
+dict_name = prefix_name + "_dict.npy"
 
 # objfile sample
-m = 300
+m = 100
 n = m
+
+# render sample
+rm = 4
+rn = rm
+# render resolution
+rx = 2
+ry = rx

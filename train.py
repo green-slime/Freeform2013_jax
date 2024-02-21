@@ -5,6 +5,7 @@ import numpy as np
 import jax.numpy as jnp
 from functools import partial
 from jax import grad, jit, vmap,lax
+from jax.lax import batch_vmap
 import config as cfg
 import density_func as df
 import jax.config
@@ -36,16 +37,17 @@ def loss_func(dict,Pij,indices,img_dict,using_varyweight_flag,flag_printout=Fals
     no=cfg.no;ni=cfg.ni;a=cfg.a;tz=cfg.tz
     #end_time=time.time()
     #print('dict_find time cost',end_time-start_time,'s')
+    res=batch_vmap(loss_func_for_one_pos,batch_size=cfg.sample_chunk_size,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
     '''
     res=vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
-    '''   
+       
     chunk_size=cfg.sample_chunk_size
     res=jnp.array([])
     for i in range(0, cfg.totalSampleNum, chunk_size):
         temp_array=vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[i:i+chunk_size,1],indices[i:i+chunk_size,0],indices[i:i+chunk_size,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
         res=jnp.concatenate([res,temp_array])
     #res=jnp.concatenate([vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[i:i+chunk_size,1],indices[i:i+chunk_size,0],indices[i:i+chunk_size,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict) for i in range(0, cfg.totalSampleNum, chunk_size)])
-    
+    '''
     #jax.debug.print("res:{}",res)
     
     # let inner loss and edge loss has the same maximum
@@ -93,19 +95,20 @@ def calculate_Jacobi(dict,Pij,indices,img_dict,using_varyweight_flag):
     epsilon=10e-6    
     # see norm/sqrt(size) as the average length of each element of Pij
     avg_len=epsilon*jnp.linalg.norm(Pij)/jnp.sqrt(cfg.totalBasisNum)   
-    '''
+    
     indices_for_Pij=jnp.array([(j,i) for j in range(cfg.N+3) for i in range(cfg.M+3)])
-    res=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
+    res=batch_vmap(Jacobi_for_one_pos,batch_size=cfg.variable_chunk_size,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
     '''
     indices_for_Pij=jnp.array([(j,i) for j in range(cfg.N+3) for i in range(cfg.M+3)])
     chunk_size=cfg.variable_chunk_size
     
-    res=jnp.empty((0,cfg.totalSampleNum)) # res_init is a 0*totalSampleNum 2-D array, which would be concatenated with temp_array, which is totalBasisNum*totalSampleNum, in axis=0
-    for i in range(0, cfg.totalBasisNum, chunk_size):
-        temp_array=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
-        res=jnp.concatenate([res,temp_array])
+    #res=jnp.empty((0,cfg.totalSampleNum)) # res_init is a 0*totalSampleNum 2-D array, which would be concatenated with temp_array, which is totalBasisNum*totalSampleNum, in axis=0
+    #for i in range(0, cfg.totalBasisNum, chunk_size):
+        #temp_array=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
+        #res=jnp.concatenate([res,temp_array])
     #res=jnp.concatenate([vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag) for i in range(0, cfg.totalBasisNum, chunk_size)])
     #1111
+    '''
     res=jnp.transpose(res)
     return res 
 
@@ -139,6 +142,7 @@ def if_positive_rho(epsilon_p,f_new,rho,mu,p_new,surface_dict,indices,epsilon_g_
 def train_using_LM():
     # train using Levenberg-Marquardt algorithm, pseudocode from https://www.researchgate.net/figure/Pseudocode-for-the-Levenberg-Marquardt-nonlinear-least-squares-algorithm-see-text-for_fig2_220492985
     start_time=time.time()
+    os.makedirs(cfg.folder_name, exist_ok=True)
     logfile=open(cfg.log_filename,'w')
     if not logfile:
         print("无法打开log文件。")
@@ -147,7 +151,7 @@ def train_using_LM():
     s=BSurface.BSurface(cfg.M,cfg.N)
     img=imgp.Image(cfg.target_img_path)
     img_dict=img.queryDict()
-    uf.writeToObj(s,Pij,cfg.init_objname)
+    #uf.writeToObj(s,Pij,cfg.init_objname)
     surface_dict=s.queryDict()
     indices=make_indices()
     min_loss=1e16
@@ -265,23 +269,20 @@ def train_using_LM():
     return Pij,s
           
 
-
+import render
 if __name__ == "__main__":
     jax.config.update("jax_enable_x64", True)
     jax.config.update('jax_platform_name', 'gpu')
     #XLA_PYTHON_CLIENT_PREALLOCATE=False
     # 查找空闲的GPU
-    try:
-        idle_gpu_index = uf.find_idle_gpu()
-        print("即将使用GPU：", idle_gpu_index)
-        os.environ['CUDA_VISIBLE_DEVICES']=str(idle_gpu_index)
-    except uf.NoIdleGPUError:
-        print("没有找到空闲的GPU，发生错误")
-        sys.exit()
+    uf.find_idle_gpu()
                 
     #train()
     Pij,surface=train_using_LM()
+    uf.saveToDict({"Pij":Pij,"M":cfg.M,"N":cfg.N}) # surface only depends on M and N : s=BSurface.BSurface(cfg.M,cfg.N)
     
-    uf.writeToObj(surface,Pij,cfg.objname)
+    print(render.render(Pij,surface))
+    
+    #uf.writeToObj(surface,Pij,cfg.objname)
     
     
