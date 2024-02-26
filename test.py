@@ -10,9 +10,26 @@ import density_func
 from jax import lax
 import config as cfg
 from jax import vmap
+from jax.lax import batch_vmap
 import os
 import sys
+import utils_func as uf
 
+uf.find_idle_gpu()
+
+@jit
+def f(x):
+    return jnp.array([1,2,3])
+# Example 1:
+print(vmap(f)(jnp.arange(3)))
+print(batch_vmap(f,batch_size=2)(jnp.arange(3)))
+# Example 2:
+#vmap(f)(jnp.arange(1e10))
+#batch_vmap(f,batch_size=10)(jnp.arange(1e10))
+
+
+
+'''
 a=jnp.empty((0,3))
 print(a)
 print(jnp.concatenate([a,jnp.array([[1,2,3]])]))
@@ -43,4 +60,4 @@ def test_sum(i,j):
     return res
 
 z=vmap(lambda i,j:test_sum(i,j),in_axes=[0,0])(jnp.array([1,2,3]),jnp.array([3,2,1]))
-print(z[1])
+print(z[1])'''

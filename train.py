@@ -37,7 +37,8 @@ def loss_func(dict,Pij,indices,img_dict,using_varyweight_flag,flag_printout=Fals
     no=cfg.no;ni=cfg.ni;a=cfg.a;tz=cfg.tz
     #end_time=time.time()
     #print('dict_find time cost',end_time-start_time,'s')
-    res=batch_vmap(loss_func_for_one_pos,batch_size=cfg.sample_chunk_size,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
+    #res=batch_vmap(loss_func_for_one_pos,batch_size=cfg.sample_batch_size,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
+    res=vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
     '''
     res=vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
        
@@ -97,7 +98,8 @@ def calculate_Jacobi(dict,Pij,indices,img_dict,using_varyweight_flag):
     avg_len=epsilon*jnp.linalg.norm(Pij)/jnp.sqrt(cfg.totalBasisNum)   
     
     indices_for_Pij=jnp.array([(j,i) for j in range(cfg.N+3) for i in range(cfg.M+3)])
-    res=batch_vmap(Jacobi_for_one_pos,batch_size=cfg.variable_chunk_size,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
+    res=batch_vmap(Jacobi_for_one_pos,batch_size=cfg.variable_batch_size,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
+    #res=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
     '''
     indices_for_Pij=jnp.array([(j,i) for j in range(cfg.N+3) for i in range(cfg.M+3)])
     chunk_size=cfg.variable_chunk_size
@@ -106,6 +108,7 @@ def calculate_Jacobi(dict,Pij,indices,img_dict,using_varyweight_flag):
     #for i in range(0, cfg.totalBasisNum, chunk_size):
         #temp_array=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
         #res=jnp.concatenate([res,temp_array])
+        #del temp_array
     #res=jnp.concatenate([vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[i:i+chunk_size,1],indices_for_Pij[i:i+chunk_size,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag) for i in range(0, cfg.totalBasisNum, chunk_size)])
     #1111
     '''
@@ -143,6 +146,7 @@ def train_using_LM():
     # train using Levenberg-Marquardt algorithm, pseudocode from https://www.researchgate.net/figure/Pseudocode-for-the-Levenberg-Marquardt-nonlinear-least-squares-algorithm-see-text-for_fig2_220492985
     start_time=time.time()
     os.makedirs(cfg.folder_name, exist_ok=True)
+    os.makedirs(cfg.prefix_name, exist_ok=True)
     logfile=open(cfg.log_filename,'w')
     if not logfile:
         print("无法打开log文件。")
@@ -151,7 +155,7 @@ def train_using_LM():
     s=BSurface.BSurface(cfg.M,cfg.N)
     img=imgp.Image(cfg.target_img_path)
     img_dict=img.queryDict()
-    #uf.writeToObj(s,Pij,cfg.init_objname)
+    uf.writeToObj(s,Pij,cfg.init_objname)
     surface_dict=s.queryDict()
     indices=make_indices()
     min_loss=1e16
@@ -281,8 +285,8 @@ if __name__ == "__main__":
     Pij,surface=train_using_LM()
     uf.saveToDict({"Pij":Pij,"M":cfg.M,"N":cfg.N}) # surface only depends on M and N : s=BSurface.BSurface(cfg.M,cfg.N)
     
-    print(render.render(Pij,surface))
-    
-    #uf.writeToObj(surface,Pij,cfg.objname)
+    #print(render.render(Pij,surface))
+    jax.profiler.save_device_memory_profile(cfg.memory_profile_name)
+    uf.writeToObj(surface,Pij,cfg.objname)
     
     
