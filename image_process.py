@@ -42,10 +42,12 @@ class Image:
         self.normalized_intensity = self.grayValueAfterGamma / np.sum(self.grayValueAfterGamma)
         self.normalized_intensity = jnp.array(self.normalized_intensity)
         self.min_intensity=jnp.min(self.normalized_intensity)
+        self.minGrayValue = jnp.min(self.grayValueAfterGamma)
+        self.maxGrayValue = jnp.max(self.grayValueAfterGamma)
     def queryDict(self):
         self.pixelNum=self.width*self.height
         self.S_pixel=4*cfg.half_height*cfg.half_width/self.pixelNum
-        return {"normalized_intensity":self.normalized_intensity, "min_intensity":self.min_intensity, "width":self.width, "height":self.height,"pixelNum":self.pixelNum,"S_pixel":self.S_pixel}
+        return {"normalized_intensity":self.normalized_intensity, "min_intensity":self.min_intensity, "width":self.width, "height":self.height,"pixelNum":self.pixelNum,"S_pixel":self.S_pixel,"minGrayValue":self.minGrayValue,"maxGrayValue":self.maxGrayValue}
     
     
 def queryIntensity(normalized_intensity,u,v,width,height):

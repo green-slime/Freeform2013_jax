@@ -48,22 +48,23 @@ folder_name = "./result_new/"
 prefix_name = folder_name + f"{name}_{M}_{M_sample}/"
 log_filename = prefix_name + "_output.txt"
 init_objname = prefix_name + "_init.obj"
-objname = prefix_name + "_result.obj"
+objname = prefix_name + f"{name}_{M}_{M_sample}_" + "result.obj" # need to use blender
 render_picname = prefix_name + "_img.png"
 dict_name = prefix_name + "_dict.npy"
 memory_profile_name = prefix_name + "_memory.prof"
-
+img_dict_name = prefix_name + "_img_dict.npy"
+render_folder_path = prefix_name + "render_results/"
 # objfile sample
 m = 200
 n = m
 
 # render sample
-rm = 4
+rm = 1250
 rn = rm
 dm = (xmax-xmin)/rm  # on glass
 dn = (ymax-ymin)/rn
 # render resolution
-rx = 3
+rx = 25
 ry = rx
 dx = 2*half_width/rx  # on target domain
 dy = 2*half_height/ry

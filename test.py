@@ -17,6 +17,13 @@ import utils_func as uf
 from math import floor
 
 uf.find_idle_gpu()
+# 字典传引用，数组传值？
+import timeit
+dict={"a":jnp.ones((1000,1000)), "b":jnp.zeros((1000,1000))}
+a=dict["a"];b=dict["b"]
+
+timeit.timeit()
+
 #stack二维数组
 '''
 emp=jnp.empty((0,2,3))

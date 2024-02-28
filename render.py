@@ -5,7 +5,11 @@ import cost_func as cf
 import config as cfg
 import jax.config
 import BSurface
+import numpy as np
 #from jax.lax import batch_vmap
+import cv2
+import image_process as imgp 
+import time
 
 @jit
 def decideOnWhichGrid(tx,ty,grid_array: jnp.ndarray):
@@ -13,13 +17,16 @@ def decideOnWhichGrid(tx,ty,grid_array: jnp.ndarray):
     ind_y=jnp.floor((cfg.ymax-ty)/cfg.dy).astype(jnp.int32) # notice that (0,0) is the lefttop of the img
     ind_x=jnp.minimum(ind_x,cfg.rx-1)
     ind_y=jnp.minimum(ind_y,cfg.ry-1)
+    # if out of range, then return (-1,-1)
+    
     # grid(ind_y,ind_x)
     #grid_array = grid_array.at[ind_y,ind_x].add(1)
     return jnp.array([ind_y,ind_x])
 
     
 
-def render(Pij,surface:BSurface,picname=cfg.render_picname):
+def render(Pij,surface:BSurface,imgdict:dict,picname=cfg.render_picname):
+    start_time = time.time()
     surface.calculateAllNsOnGrid_forRender()
     dict = surface.query_dict_for_render()
     
@@ -40,14 +47,19 @@ def render(Pij,surface:BSurface,picname=cfg.render_picname):
     #print(need_to_add)
     for i in range(len(add_index)):
         grid_array=grid_array.at[add_index[i][0],add_index[i][1]].add(1)
-    print(grid_array)
+    #print(grid_array)
+    maxNum=jnp.max(grid_array);minNum=jnp.min(grid_array);allNum=jnp.sum(grid_array)
+    #print(imgdict["maxGrayValue"],imgdict["minGrayValue"])
+    grid_array=imgdict["minGrayValue"]+(imgdict["maxGrayValue"]-imgdict["minGrayValue"])*(grid_array-minNum)/(maxNum-minNum)
+    #print(grid_array)   
+    grid_array=np.array(grid_array)
+    grid_array=grid_array.astype(np.uint8)
+    #print(type(grid_array))
 
+    cv2.imwrite(picname, grid_array)
+    end_time = time.time()
+    print("rendering finished. Computation time cost", end_time-start_time, "s.")
 
-def test_func(i,j):
-    return i+1,i+2,j+1,j+2
-
-
-import numpy as np
 if __name__ == "__main__":
     jax.config.update("jax_enable_x64", True)
     jax.config.update('jax_platform_name', 'gpu')
@@ -59,7 +71,10 @@ if __name__ == "__main__":
     assert(M==cfg.M and N==cfg.N)
     Pij=jnp.ones((cfg.M+3,cfg.N+3))
     surface=BSurface.BSurface(M,N)
-    render(Pij,surface,"test_picname.png")
+    
+    img=imgp.Image(cfg.target_img_path)
+    imgdict=img.queryDict()
+    render(Pij,surface,imgdict,"test_picname2.png")
     
     #jax.config.update("jax_enable_x64", True)
     #uf.find_idle_gpu()
