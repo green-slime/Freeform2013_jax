@@ -13,6 +13,7 @@ import utils_func as uf
 import os
 import image_process as imgp
 import sys
+#import netket as nk
 
 @jit
 def loss_func_for_one_pos(i,j,bool,gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict):
@@ -37,8 +38,8 @@ def loss_func(dict,Pij,indices,img_dict,using_varyweight_flag,flag_printout=Fals
     no=cfg.no;ni=cfg.ni;a=cfg.a;tz=cfg.tz
     #end_time=time.time()
     #print('dict_find time cost',end_time-start_time,'s')
-    #res=batch_vmap(loss_func_for_one_pos,batch_size=cfg.sample_batch_size,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
-    res=vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
+    #res=nk.jax.vmap_chunked(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None],chunk_size=cfg.sample_chunk_size)(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
+    res=batch_vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None],batch_size=cfg.sample_chunk_size)(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
     '''
     res=vmap(loss_func_for_one_pos,in_axes=[0,0,0,None,None,None,None,None,None,None,None,None,None,None,None])(indices[:,1],indices[:,0],indices[:,2],gNui3,gNvi3,Pij,gdNui3,gdNvi3,gddNui3,gddNvi3,ni,no,a,tz,img_dict)
        
@@ -98,8 +99,8 @@ def calculate_Jacobi(dict,Pij,indices,img_dict,using_varyweight_flag):
     avg_len=epsilon*jnp.linalg.norm(Pij)/jnp.sqrt(cfg.totalBasisNum)   
     
     indices_for_Pij=jnp.array([(j,i) for j in range(cfg.N+3) for i in range(cfg.M+3)])
-    res=batch_vmap(Jacobi_for_one_pos,batch_size=cfg.variable_batch_size,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
-    #res=vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None])(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
+    #res=nk.jax.vmap_chunked(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None],chunk_size=cfg.variable_chunk_size)(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
+    res=batch_vmap(Jacobi_for_one_pos,in_axes=[0,0,None,None,None,None,None,None],batch_size=cfg.variable_chunk_size)(indices_for_Pij[:,1],indices_for_Pij[:,0],dict,Pij,indices,avg_len,img_dict,using_varyweight_flag)
     '''
     indices_for_Pij=jnp.array([(j,i) for j in range(cfg.N+3) for i in range(cfg.M+3)])
     chunk_size=cfg.variable_chunk_size

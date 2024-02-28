@@ -1,6 +1,6 @@
 from math import floor
 # M,N controls the B-Spline, the number of control points is M+3 * N+3
-M = 17
+M = 2
 N = M
 variable_chunk_size = 20*20
 # M_sample,N_sample controls the sample points in the target plane, the number of sample points is M_sample*N_sample
@@ -60,6 +60,10 @@ n = m
 # render sample
 rm = 4
 rn = rm
+dm = (xmax-xmin)/rm  # on glass
+dn = (ymax-ymin)/rn
 # render resolution
-rx = 2
+rx = 3
 ry = rx
+dx = 2*half_width/rx  # on target domain
+dy = 2*half_height/ry

@@ -55,7 +55,7 @@ def inner_img_E(tx, ty, S_pixel, E0, width, height, normalized_intensity):
     w = cfg.half_width
     h = cfg.half_height
     u = (tx+w)/(2*w)
-    v = (h-ty)/(2*h)
+    v = (h-ty)/(2*h) # (u,v)=(0,0) represents the lefttop of the img, i.e. postition (tx,ty)=(-w,h)
     return imgp.queryIntensity(normalized_intensity, u, v, width, height)*E0/S_pixel
 
 

@@ -217,7 +217,7 @@ class BSurface:
             _gNui3_for_render = []
             _gdNui3_for_render = []
             _gddNui3_for_render = []
-            for k in range(rm):
+            for k in range(rm+1):
                 _gNui3_for_render.append(self.Nui3[i](grid_u[k]))
                 _gdNui3_for_render.append(self.dNui3[i](grid_u[k]))
                 _gddNui3_for_render.append(self.ddNui3[i](grid_u[k]))
@@ -233,7 +233,7 @@ class BSurface:
             _gNvi3_for_render = []
             _gdNvi3_for_render = []
             _gddNvi3_for_render = []
-            for k in range(rn):
+            for k in range(rn+1):
                 _gNvi3_for_render.append(self.Nvi3[j](grid_v[k]))
                 _gdNvi3_for_render.append(self.dNvi3[j](grid_v[k]))
                 _gddNvi3_for_render.append(self.ddNvi3[j](grid_v[k]))

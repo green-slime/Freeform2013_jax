@@ -14,19 +14,52 @@ from jax.lax import batch_vmap
 import os
 import sys
 import utils_func as uf
+from math import floor
 
 uf.find_idle_gpu()
+#stack二维数组
+'''
+emp=jnp.empty((0,2,3))
+arr23=jnp.array([[1,2,3],[4,5,6]])
+emp=jnp.append(emp,jnp.expand_dims(arr23,axis=0),axis=0)
+emp=jnp.append(emp,jnp.expand_dims(arr23,axis=0),axis=0)
+print(emp)'''
 
+#XLA_PYTHON_CLIENT_MEM_FRACTION=.50
+XLA_PYTHON_CLIENT_PREALLOCATE=False
 @jit
 def f(x):
     return jnp.array([1,2,3])
+#from netket.jax import vmap_chunked
+
+#result2=vmap(f)(jnp.arange(floor(0.5*1e9)))
+#jax.clear_backends()
+#jax.clear_caches()
+
+#del result2
+print("success.")
+
+#vmap_chunked(f,chunk_size=floor(0.25*1e9))(jnp.arange(floor(1e10)))
 # Example 1:
-print(vmap(f)(jnp.arange(3)))
-print(batch_vmap(f,batch_size=2)(jnp.arange(3)))
+#print(vmap(f)(jnp.arange(3)))
+#print(batch_vmap(f,batch_size=2)(jnp.arange(3)))
 # Example 2:
 #vmap(f)(jnp.arange(1e10))
-#batch_vmap(f,batch_size=10)(jnp.arange(1e10))
+result=jnp.empty((0,floor(0.25*1e9),3))
+#result2=vmap(f)(jnp.arange(floor(1e9)))
+#del result2
+#print("success.")
 
+#试验说明for的确是串行的，与手动复制多次一样，只是内存无法释放
+#试验说明直接循环十次没有问题，但是concatenate会造成问题
+#tmd我知道了，单纯是数组太大溢出了，跟vmap没关系
+a=jnp.ones((1,2,3))
+
+for i in range(10):
+    temp_array=vmap(f)(jnp.arange(floor(0.25*1e9)))
+    result=jnp.append(result,jnp.expand_dims(a,axis=0))
+    # wouldn't OOM
+    # but result=jnp.append(temp_array,jnp.expand_dims(a,axis=0)) would.
 
 
 '''
