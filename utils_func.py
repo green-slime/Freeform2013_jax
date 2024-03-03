@@ -107,3 +107,9 @@ def readFromDict(dict_name=cfg.dict_name):
     except (IOError, OSError) as e:
         print("Failed to load data:", e)
 
+import json
+def writeToJsonList(filename, data, foldername=cfg.test_folder_name):
+    os.makedirs(foldername, exist_ok=True)
+    with open(foldername+filename, "w") as f:
+        json.dump(data.tolist(), f)
+        f.close()

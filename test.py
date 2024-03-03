@@ -15,14 +15,50 @@ import os
 import sys
 import utils_func as uf
 from math import floor
-
+from timeit import timeit
 uf.find_idle_gpu()
+
+# 矩阵乘向量
+'''
+Pij=jnp.array([[1,2,3],[4,5,6],[7,8,9]])
+U=Pij[:,0];print(U)
+V=Pij[:,2];print(V)
+def f_test():
+    res=0
+    for i in range(3):
+        for j in range(3):
+            res+=U[i]*Pij[i,j]*V[j]
+def f_2():
+    return jnp.dot(U,jnp.dot(Pij,V))
+for f in [f_test,f_2]:
+    t=timeit.timeit(f,number=1000)
+    print(f'{t:.3f}')
+#结果：29.660
+#      0.484
+#     因此向量乘法要好很多
+sys.exit()
+'''
 # 字典传引用，数组传值？
+'''
 import timeit
 dict={"a":jnp.ones((1000,1000)), "b":jnp.zeros((1000,1000))}
 a=dict["a"];b=dict["b"]
-
-timeit.timeit()
+@jit
+def f1(x,dict1):
+    a1=dict1["a"];b1=dict1["b"]
+    return a1+b1
+@jit
+def f2(x,a2,b2):
+    return a2+b2
+jax.config.update('jax_platform_name', 'gpu')
+f1r=lambda :jit(vmap(f1,in_axes=[0,None]))(jnp.arange(1000),dict)
+f2r=lambda :jit(vmap(f2,in_axes=[0,None,None]))(jnp.arange(1000),a,b)
+for f in [f1r,f2r]:    
+    t=timeit.timeit(f,number=1000)
+    print(f'{t:.3f}')'''
+#结果：101.524
+#96.429
+#因此二者相近，不需要特殊对待
 
 #stack二维数组
 '''

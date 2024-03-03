@@ -7,7 +7,7 @@ from jax import lax
 import config as cfg
 
 class Image:
-    def __init__(self, filename, gamma=1.6):
+    def __init__(self, filename, gamma=cfg.gamma):
         self.gamma = gamma
         # 读取图像
         image = cv2.imread(filename, cv2.IMREAD_COLOR)

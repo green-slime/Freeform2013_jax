@@ -1,5 +1,8 @@
 result/
 result_new/
 result_test/
+*.png
+*.jpg
+/render_test/
 __pycache__/
 jax instruction.txt
