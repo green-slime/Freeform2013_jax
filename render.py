@@ -116,7 +116,7 @@ def renderIntensityToImg(imgdict, intensity, picname):
 def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname,rm=cfg.rm,rn=cfg.rn):
     start_time = time.time()
     print("rendering...")
-    surface.calculateAllNsOnGrid_forRender()
+    surface.calculateAllNsOnGrid_forRender(rm,rn)
     dict = surface.query_dict_for_render()
 
     gNui3_for_render = dict["gNui3_for_render"]

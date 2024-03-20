@@ -166,6 +166,7 @@ def train_using_LM():
     start_time = time.time()
     os.makedirs(cfg.folder_name, exist_ok=True)
     os.makedirs(cfg.prefix_name, exist_ok=True)
+    print("Now writing files to:", cfg.prefix_name)
     logfile = open(cfg.log_filename, 'w')
     if not logfile:
         print("无法打开log文件。")
@@ -292,7 +293,7 @@ if __name__ == "__main__":
     # surface only depends on M and N : s=BSurface.BSurface(cfg.M,cfg.N)
     uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N})
     #uf.writeToObj(surface, Pij, cfg.objname)
-    
+    '''
     Pij_backup = Pij
     Pij = lmr.solve_using_LM(Pij, surface, img_dict)
     #print("Pij真的有更新吗？",jnp.max(jnp.abs(Pij-Pij_backup)))
@@ -304,5 +305,5 @@ if __name__ == "__main__":
     Pij_backup = lma.solve_using_LM(Pij_backup, surface, img_dict)
     rd.render(Pij_backup, surface, img_dict, cfg.render_picname_afterOptAlter)
     uf.saveToDict({"Pij": Pij_backup, "M": cfg.M, "N": cfg.N},cfg.OptAlter_dict_name)
-    
+    '''
     #uf.compareTwoImg(cfg.render_picname,cfg.render_picname_afterOpt)

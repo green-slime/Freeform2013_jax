@@ -202,10 +202,10 @@ class BSurface:
         res={"gNui3_for_obj":self.gNui3_for_obj,"gNvi3_for_obj":self.gNvi3_for_obj}
         return res
     
-    def calculateAllNsOnGrid_forRender(self):
+    def calculateAllNsOnGrid_forRender(self,rm=cfg.rm,rn=cfg.rn):
         #print("Now calculate grid value for obj...")
-        rm=cfg.rm 
-        rn=cfg.rn
+        #rm=cfg.rm 
+        #rn=cfg.rn
         #start_time=time.time()
         grid_u=np.arange(rm+1)/(rm)
         grid_v=np.arange(rn+1)/(rn)

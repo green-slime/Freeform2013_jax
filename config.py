@@ -1,10 +1,10 @@
 from math import floor
 # M,N controls the B-Spline, the number of control points is M+3 * N+3
-M = 46
+M = 27
 N = M
 variable_chunk_size = 15*15
 # M_sample,N_sample controls the sample points in the target plane, the number of sample points is M_sample*N_sample
-M_sample = 256
+M_sample = 512
 N_sample = M_sample
 sample_chunk_size = 100**2
 # half_width, half_height are the half width and half height of the target domain
