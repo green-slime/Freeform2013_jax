@@ -1,10 +1,10 @@
 from math import floor
 # M,N controls the B-Spline, the number of control points is M+3 * N+3
-M = 66
+M = 46
 N = M
 variable_chunk_size = 15*15
 # M_sample,N_sample controls the sample points in the target plane, the number of sample points is M_sample*N_sample
-M_sample = 512
+M_sample = 256
 N_sample = M_sample
 sample_chunk_size = 100**2
 # half_width, half_height are the half width and half height of the target domain
@@ -84,7 +84,7 @@ ry = rx
 dx = 2*half_width/rx  # on target domain
 dy = 2*half_height/ry
 render_picname = prefix_name + f"{rx}_{rm}_" + "img.png"
-render_picname_test = prefix_name + f"{rx}_{rm}_" + "img_test.png"
+render_picname_test = prefix_name + f"{rx}_{rm}_" + "img_test3.png"
 render_picname_test2 = prefix_name + f"{rx}_{rm}_" + "img_test2.png"
 render_picname_afterOpt = prefix_name + f"{rx}_{rm}_afterOpt_" + "img.png"
 render_picname_afterOptAlter = prefix_name + f"{rx}_{rm}_afterOpt_Alter_" + "img.png"

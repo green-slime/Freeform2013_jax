@@ -63,8 +63,8 @@ def loss_func(dict, Pij, indices, img_dict, using_varyweight_flag, flag_printout
     boundary_max = jnp.max(jnp.abs(false_result))
     inner_norm = jnp.linalg.norm(true_result)
     boundary_norm = jnp.linalg.norm(false_result)
-    varyweight = lax.cond(boundary_norm < 1e-12, lambda x: 0.0, lambda x: 10**jnp.floor(
-        (jnp.log10(inner_norm/boundary_norm))), 0)  # in case that boundary_norm=0
+    varyweight = 10**jnp.floor((jnp.log10(inner_norm/boundary_norm)))
+    varyweight = lax.cond((boundary_norm < 1e-12)| (varyweight<1e-8), lambda x: 0.0, lambda x: varyweight, 0)  # in case that boundary_norm=0
     # varyweight=lax.cond(boundary_max<1e-12,lambda x:0.0,lambda x:inner_max/boundary_max,0) # in case that boundary_norm=0
     # termsweight=jnp.sqrt(cfg.M_sample+1)/2
     termsweight = 1.0
@@ -73,18 +73,18 @@ def loss_func(dict, Pij, indices, img_dict, using_varyweight_flag, flag_printout
                       lambda x: varyweight, lambda x: termsweight, 0)
     lax.cond(flag_printout, lambda x: jax.debug.print("inner_result={}, boundary_result={}, weight={}, varyweight={}",
              inner_norm, boundary_norm, weight, varyweight), lambda x: None, 0)
-    res_final = true_result+false_result*weight
+    #res_final = true_result+false_result*weight
     # jax.debug.print("res_final:{}",res_final)
     '''
     Here we introduce render loss.
     '''
     render_loss = rd.render_loss(Pij, dict, img_dict["normalized_intensity"]) # 1 integer
     render_loss_norm=jnp.linalg.norm(render_loss)
-    scale=10**jnp.floor((jnp.log10(jnp.linalg.norm(res_final)/render_loss_norm)))
+    scale=10**jnp.floor((jnp.log10(jnp.linalg.norm(inner_norm)/render_loss_norm)))
     scale=lax.cond((render_loss_norm<1e-16) | (scale<1e-8),lambda x:scale,lambda x:0.0,0.0)
-    render_loss_norm=render_loss_norm*scale
+    #render_loss_norm=render_loss_norm*scale
     #print(jnp.array([[jnp.linalg.norm(res_final), render_loss_norm]]).shape)
-    return jnp.array([jnp.linalg.norm(res_final), render_loss_norm])
+    return jnp.array([inner_norm, boundary_norm*weight, render_loss_norm*scale])
     return res_final[0]  # since res=[a,b,...] --> res_final=[[a',b',...]]
     return res
 

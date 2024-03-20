@@ -75,7 +75,7 @@ def return_idle_gpu_index():
         handle = pynvml.nvmlDeviceGetHandleByIndex(i)
         info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         
-        if info.used <= 4000 * 1024 * 1024:
+        if info.used <= 6000 * 1024 * 1024:
             return i
         else:
             #print(f"gpu {i} using memory {info.used/1024/1024} mb")
