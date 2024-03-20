@@ -1,4 +1,5 @@
 import LM_algo_for_renderLoss as lmr
+import LM_algo_Alter as lma
 import render as rd
 import cost_func
 import BSurface
@@ -129,13 +130,14 @@ def solve_delta_p(A, mu, g):
 
 
 @jit
-def update_rho_p_f(Pij, delta_p, mu, g, surface_dict, indices, epsilon_p, img_dict, using_varyweight_flag):
+def update_rho_p_f(Pij, delta_p, mu, g, surface_dict, indices, epsilon_p, img_dict, using_varyweight_flag,renderMeshdict):
     p_new = Pij+delta_p.reshape((cfg.N+3, cfg.M+3))
-    f_new = loss_func(surface_dict, p_new, indices,
+    f_new_OT = loss_func(surface_dict, p_new, indices,
                       img_dict, using_varyweight_flag, True)
-    rho = (jnp.dot(epsilon_p, epsilon_p)-jnp.dot(f_new, f_new)) / \
+    f_new_render=lma.render_loss(p_new,renderMeshdict,img_dict["normalized_intensity"])
+    rho = (jnp.dot(epsilon_p, epsilon_p)-jnp.dot(f_new_OT, f_new_OT)-jnp.dot(f_new_render, f_new_render)) / \
         (jnp.dot(delta_p, (mu*delta_p+g)))
-    return rho, p_new, f_new
+    return rho, p_new, f_new_OT,f_new_render
 
 
 @jit
@@ -144,21 +146,30 @@ def condition1(delta_p, epsilon_deltap_norm, Pij):
 
 
 @jit
-def if_positive_rho(epsilon_p, f_new, rho, mu, p_new, surface_dict, indices, epsilon_g_norm, epsilon_relative, img_dict, using_varyweight_flag):
-    stop = (jnp.linalg.norm(epsilon_p)-jnp.linalg.norm(f_new)
+def if_positive_rho(epsilon_p, f_new_OT, f_new_render, rho, mu, p_new, surface_dict, indices, epsilon_g_norm, epsilon_relative, img_dict, using_varyweight_flag,renderMeshdict,target_intensity):
+    stop = (jnp.linalg.norm(epsilon_p)-jnp.linalg.norm(f_new_OT)
             ) < epsilon_relative*(jnp.linalg.norm(epsilon_p))
     p = p_new
-    J_new = calculate_Jacobi(surface_dict, p, indices,
-                             img_dict, using_varyweight_flag)
-    A_new = jnp.dot(jnp.transpose(J_new), J_new)
-    epsilon_p_new = -loss_func(surface_dict, p, indices,
-                               img_dict, using_varyweight_flag)
-    g_new = jnp.dot(jnp.transpose(J_new), epsilon_p_new)
+    
+    J = calculate_Jacobi(surface_dict, p_new, indices,
+                         img_dict, using_varyweight_flag)
+    J2 = lma.calculate_Jacobi(p_new,renderMeshdict,target_intensity)
+    epsilon_p = -loss_func(surface_dict, p_new, indices,
+                           img_dict, using_varyweight_flag, True)
+    epsilon_p2 = -lma.render_loss(p_new,renderMeshdict,target_intensity)
+    ## scale for 2 loss
+    ## f2' = f2*scale
+    scale=10**jnp.floor((jnp.log10(jnp.linalg.norm(epsilon_p)/jnp.linalg.norm(epsilon_p2))))
+    scale=lax.cond((jnp.linalg.norm(epsilon_p2)<1e-16) | (scale<1e-8),lambda x:scale,lambda x:0.0,0.0)
+    J2=J2*scale;epsilon_p2=epsilon_p2*scale
+    
+    A_new = jnp.dot(jnp.transpose(J), J)+jnp.dot(jnp.transpose(J2), J2)
+    g_new = jnp.dot(jnp.transpose(J), epsilon_p)+jnp.dot(jnp.transpose(J2), epsilon_p2)
     stop2 = (jnp.max(g_new) <= epsilon_g_norm)
     mu = mu*jnp.maximum(1/3, 1-pow(2*rho-1, 3))
     v = 2
     stop = (stop | stop2)
-    return stop, mu, p, J_new, A_new, epsilon_p_new, g_new, v
+    return stop, mu, p, A_new, jnp.concatenate([epsilon_p,epsilon_p2]), g_new, v
 
 
 def train_using_LM():
@@ -190,18 +201,31 @@ def train_using_LM():
     v = 2
     J = calculate_Jacobi(surface_dict, Pij, indices,
                          img_dict, using_varyweight_flag)
+    ### use LM_algo_alter
+    target_intensity=img_dict["normalized_intensity"]
+    s.calculateAllNsOnGrid_forRender()
+    renderMeshdict= s.query_dict_for_render()
+    J2 = lma.calculate_Jacobi(Pij,renderMeshdict,target_intensity)
     epsilon_p = -loss_func(surface_dict, Pij, indices,
                            img_dict, using_varyweight_flag, True)
+    epsilon_p2 = -lma.render_loss(Pij,renderMeshdict,target_intensity)
+    ## scale for 2 loss
+    ## f2' = f2*scale
+    
+    scale=10**jnp.floor((jnp.log10(jnp.linalg.norm(epsilon_p)/jnp.linalg.norm(epsilon_p2))))
+    scale=lax.cond((jnp.linalg.norm(epsilon_p2)<1e-16) | (scale<1e-8),lambda x:scale,lambda x:0.0,0.0)
+    J2=J2*scale;epsilon_p2=epsilon_p2*scale
+    
     epsilon_g_norm = 1e-8
     epsilon_deltap_norm = 1e-12
     target_loss = 1e-8
     epsilon_relative = 1e-8
     max_iter = 2000
-    A = jnp.dot(jnp.transpose(J), J)
-    g = jnp.dot(jnp.transpose(J), epsilon_p)
+    A = jnp.dot(jnp.transpose(J), J)+jnp.dot(jnp.transpose(J2), J2)
+    g = jnp.dot(jnp.transpose(J), epsilon_p)+jnp.dot(jnp.transpose(J2), epsilon_p2)
     tao = 1e-6
     mu = tao*jnp.max(jnp.diag(A))
-    stop = (jnp.max(g) <= epsilon_g_norm)
+    stop = (jnp.max(jnp.abs(g)) <= epsilon_g_norm)
 
     while ((not stop) and (k < max_iter)):
         k = k+1
@@ -213,11 +237,11 @@ def train_using_LM():
                 print("meet stop condition")
                 break
             else:
-                rho, p_new, f_new = update_rho_p_f(
-                    Pij, delta_p, mu, g, surface_dict, indices, epsilon_p, img_dict, using_varyweight_flag)
+                rho, p_new, f_new_OT, f_new_render = update_rho_p_f(
+                    Pij, delta_p, mu, g, surface_dict, indices, jnp.concatenate([epsilon_p,epsilon_p2]), img_dict, using_varyweight_flag,renderMeshdict)
                 if (rho > 0):
-                    stop, mu, Pij, J, A, epsilon_p, g, v = if_positive_rho(
-                        epsilon_p, f_new, rho, mu, p_new, surface_dict, indices, epsilon_g_norm, epsilon_relative, img_dict, using_varyweight_flag)
+                    stop, mu, Pij, A, epsilon_p, g, v = if_positive_rho(
+                        epsilon_p, f_new_OT, f_new_render, rho, mu, p_new, surface_dict, indices, epsilon_g_norm, epsilon_relative, img_dict, using_varyweight_flag,renderMeshdict,target_intensity)
                 else:
                     mu = mu*v
                     v = 2*v
@@ -277,7 +301,7 @@ def train_using_LM():
     logfile.close()
     return Pij, s, img_dict
 
-import LM_algo_Alter as lma
+
 if __name__ == "__main__":
     jax.config.update("jax_enable_x64", True)
     jax.config.update('jax_platform_name', 'gpu')
@@ -287,22 +311,9 @@ if __name__ == "__main__":
 
     # train()
     Pij, surface, img_dict = train_using_LM()
-    rd.render(Pij, surface, img_dict, cfg.render_picname)
+    rd.render(Pij, surface, img_dict, cfg.render_picname_allTogether)
 
-    # surface only depends on M and N : s=BSurface.BSurface(cfg.M,cfg.N)
-    uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N})
-    #uf.writeToObj(surface, Pij, cfg.objname)
-    
-    Pij_backup = Pij
-    Pij = lmr.solve_using_LM(Pij, surface, img_dict)
-    #print("Pij真的有更新吗？",jnp.max(jnp.abs(Pij-Pij_backup)))
-    # rd.renderIntensityToImg(img_dict,final_intensity,cfg.render_picname_afterOpt)
-    rd.render(Pij, surface, img_dict, cfg.render_picname_afterOpt)
     #uf.writeToObj(surface, Pij, cfg.objname_afterOpt)
-    uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N},cfg.Opt_dict_name)
-    
-    Pij_backup = lma.solve_using_LM(Pij_backup, surface, img_dict)
-    rd.render(Pij_backup, surface, img_dict, cfg.render_picname_afterOptAlter)
-    uf.saveToDict({"Pij": Pij_backup, "M": cfg.M, "N": cfg.N},cfg.OptAlter_dict_name)
+    uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N}, cfg.train2_dict_name)
     
     #uf.compareTwoImg(cfg.render_picname,cfg.render_picname_afterOpt)

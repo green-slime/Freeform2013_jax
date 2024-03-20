@@ -93,14 +93,14 @@ def find_idle_gpu():
         sys.exit()
         
 import numpy as np
-def saveToDict(dict,dict_name=cfg.dict_name):
+def saveToDict(dict,dict_name=cfg.OT_dict_name):
     try:
         np.save(dict_name,dict)
         print("dict has been saved to "+dict_name)
     except (IOError, OSError) as e:
         print("Failed to save data:", e)
         
-def readFromDict(dict_name=cfg.dict_name):
+def readFromDict(dict_name=cfg.OT_dict_name):
     try:
         loaded_data = np.load(dict_name,allow_pickle=True).item() # need to clarify allow_pickle here if the numpy version high
         return loaded_data
@@ -113,3 +113,61 @@ def writeToJsonList(filename, data, foldername=cfg.test_folder_name):
     with open(foldername+filename, "w") as f:
         json.dump(data.tolist(), f)
         f.close()
+        
+def showIterInfo(k,loss,logfile,start_time):
+    if(k<=100):
+        print("iter:",k,"loss:",loss,"time cost:",time.time()-start_time,"s")
+        logfile.write(f"iter:{k} loss:{loss} time cost:{time.time()-start_time}s \n")
+        # print("iter:",k,"loss:",loss,"time cost:",time.time()-start_time,"s")
+    elif(k%200==0):
+        print("iter:",k,"loss:",loss,"time cost:",time.time()-start_time,"s")
+        logfile.write(f"iter:{k} loss:{loss} time cost:{time.time()-start_time}s\n")
+        
+def judgeAndShowEndInfo(k,loss,last_loss,stop,logfile,start_time):
+    str=""
+    if(abs(loss-last_loss)<1e-16):
+        str="relative error reached."
+    elif(stop):
+        str="stop cond reached."
+    print("converged because of "+str)
+    print("end at iter:",k,"loss:",loss,"time cost:",time.time()-start_time,"s")
+    logfile.write(f"iter:{k} loss:{loss} time cost:{time.time()-start_time}s\n")
+
+import cv2,os
+def compareTwoImg(path1,path2):
+    img1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
+    if img1.shape != img2.shape:
+        print("两张图片大小不一致")
+        return
+    else:
+        diff = cv2.absdiff(img1, img2)
+        save_path=os.path.join(os.path.dirname(path1),"diff.png")
+        print(save_path)
+        cv2.imwrite(save_path, diff)
+        print("两张图片已经比较完毕，差异的像素最大值为",np.max(diff))
+def put4picturesTogether(mode=1):
+    if(mode==1):
+        pic1=cv2.imread(cfg.render_picname)
+        #pic1=cv2.imread("/home/wzr/Freeform2013_jax/result_new/blbl_57_256_gamma1.0/reRender1280.png")
+        pic2=cv2.imread(cfg.render_picname_afterOpt)
+        pic3=cv2.imread(cfg.render_picname_afterOptAlter)
+        pic4=cv2.imread(cfg.render_picname_allTogether)
+    else:
+        pic1=cv2.imread(cfg.render_picname_afterOpt)
+    # 计算画布大小
+    canvas_width = pic1.shape[1] * 2
+    canvas_height = pic1.shape[0] * 2
+    # 创建空白画布
+    canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
+    # 将四张图片拼接到画布上
+    canvas[0:pic1.shape[0], 0:pic1.shape[1]] = pic1
+    canvas[0:pic1.shape[0], pic1.shape[1]:] = pic2
+    canvas[pic1.shape[0]:, 0:pic1.shape[1]] = pic3
+    canvas[pic1.shape[0]:, pic1.shape[1]:] = pic4
+    # 保存拼接好的图片
+    path=os.path.join(os.path.dirname(cfg.render_picname),"4pics.png")
+    cv2.imwrite(path, canvas)
+    
+if __name__ == "__main__":
+    put4picturesTogether()

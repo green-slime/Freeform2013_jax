@@ -75,6 +75,7 @@ def loss_func(dict, Pij, indices, img_dict, using_varyweight_flag, flag_printout
              inner_norm, boundary_norm, weight, varyweight), lambda x: None, 0)
     res_final = true_result+false_result*weight
     # jax.debug.print("res_final:{}",res_final)
+    return jnp.linalg.norm(res_final) 
     return res_final[0]  # since res=[a,b,...] --> res_final=[[a',b',...]]
     return res
 
@@ -118,6 +119,7 @@ def calculate_Jacobi(dict, Pij, indices, img_dict, using_varyweight_flag):
         indices_for_Pij[:, 1], indices_for_Pij[:, 0], dict, Pij, indices, avg_len, img_dict, using_varyweight_flag)
 
     res = jnp.transpose(res)
+    res=jnp.array([res]) # res.shape=(1,cfg.totalBasisNum)
     return res
 
 # funcs for train()
@@ -134,7 +136,7 @@ def update_rho_p_f(Pij, delta_p, mu, g, surface_dict, indices, epsilon_p, img_di
     f_new = loss_func(surface_dict, p_new, indices,
                       img_dict, using_varyweight_flag, True)
     rho = (jnp.dot(epsilon_p, epsilon_p)-jnp.dot(f_new, f_new)) / \
-        (jnp.dot(delta_p, (mu*delta_p+g)))
+        (jnp.dot(jnp.transpose(delta_p), (mu*delta_p+g)))
     return rho, p_new, f_new
 
 
@@ -149,7 +151,7 @@ def if_positive_rho(epsilon_p, f_new, rho, mu, p_new, surface_dict, indices, eps
             ) < epsilon_relative*(jnp.linalg.norm(epsilon_p))
     p = p_new
     J_new = calculate_Jacobi(surface_dict, p, indices,
-                             img_dict, using_varyweight_flag)
+                             img_dict, using_varyweight_flag)   
     A_new = jnp.dot(jnp.transpose(J_new), J_new)
     epsilon_p_new = -loss_func(surface_dict, p, indices,
                                img_dict, using_varyweight_flag)
@@ -166,6 +168,7 @@ def train_using_LM():
     start_time = time.time()
     os.makedirs(cfg.folder_name, exist_ok=True)
     os.makedirs(cfg.prefix_name, exist_ok=True)
+    print("Now writing files to:", cfg.prefix_name)
     logfile = open(cfg.log_filename, 'w')
     if not logfile:
         print("无法打开log文件。")
@@ -241,6 +244,11 @@ def train_using_LM():
             logfile.write(
                 f"iter:{k} loss:{loss} time cost:{time.time()-start_time}s\n")
 
+        if (k==30):
+            rd.render(Pij, s, img_dict, cfg.prefix_name+"30.png")
+        elif (k==60):
+            rd.render(Pij, s, img_dict, cfg.prefix_name+"60.png")
+
         if (k > 1 and (abs(loss-last_loss) < 1e-16 or stop or k == max_iter-1)):
             str = ""
             if (abs(loss-last_loss) < 1e-16):
@@ -287,22 +295,10 @@ if __name__ == "__main__":
 
     # train()
     Pij, surface, img_dict = train_using_LM()
-    rd.render(Pij, surface, img_dict, cfg.render_picname)
+    rd.render(Pij, surface, img_dict, cfg.render_picname_test)
 
     # surface only depends on M and N : s=BSurface.BSurface(cfg.M,cfg.N)
-    uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N})
+    uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N},cfg.OT_dict_test_name)
     #uf.writeToObj(surface, Pij, cfg.objname)
-    
-    Pij_backup = Pij
-    Pij = lmr.solve_using_LM(Pij, surface, img_dict)
-    #print("Pij真的有更新吗？",jnp.max(jnp.abs(Pij-Pij_backup)))
-    # rd.renderIntensityToImg(img_dict,final_intensity,cfg.render_picname_afterOpt)
-    rd.render(Pij, surface, img_dict, cfg.render_picname_afterOpt)
-    #uf.writeToObj(surface, Pij, cfg.objname_afterOpt)
-    uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N},cfg.Opt_dict_name)
-    
-    Pij_backup = lma.solve_using_LM(Pij_backup, surface, img_dict)
-    rd.render(Pij_backup, surface, img_dict, cfg.render_picname_afterOptAlter)
-    uf.saveToDict({"Pij": Pij_backup, "M": cfg.M, "N": cfg.N},cfg.OptAlter_dict_name)
     
     #uf.compareTwoImg(cfg.render_picname,cfg.render_picname_afterOpt)

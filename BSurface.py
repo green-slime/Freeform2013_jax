@@ -251,6 +251,12 @@ class BSurface:
     def query_dict_for_render(self):
         res={"gNui3_for_render":self.gNui3_for_render,"gNvi3_for_render":self.gNvi3_for_render,"gdNui3_for_render":self.gdNui3_for_render,"gdNvi3_for_render":self.gdNvi3_for_render,"gddNui3_for_render":self.gddNui3_for_render,"gddNvi3_for_render":self.gddNvi3_for_render}
         return res
+    
+    def query_all_dict(self):
+        dict1=self.queryDict()
+        dict2=self.query_dict_for_render()
+        merged_dict = {**dict1, **dict2}
+        return merged_dict
 
 @jit 
 def query_S_one_pos(i,j,uk,vk,gNui3,gNvi3,Pij):

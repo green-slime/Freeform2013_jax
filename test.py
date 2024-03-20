@@ -18,6 +18,12 @@ from math import floor
 from timeit import timeit
 uf.find_idle_gpu()
 
+def testFunc(a,b):
+    return a+b 
+def useFunc(x,f):
+    print(f(x,1))
+useFunc(10,testFunc)
+os.system("pause")
 # 矩阵乘向量
 '''
 Pij=jnp.array([[1,2,3],[4,5,6],[7,8,9]])

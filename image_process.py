@@ -15,6 +15,7 @@ class Image:
         if image is None:
             raise Exception("图像加载失败, 请检查文件路径是否正确")
         # 获取图像大小
+        image = cv2.resize(image, (cfg.rx, cfg.ry)) # (width, height)
         self.width = image.shape[1]
         self.height = image.shape[0]
         # 转换为灰度图像
@@ -37,17 +38,22 @@ class Image:
         # 保存aftergamma的灰度图像
         self.grayValueAfterGamma = 255*self.gammavalueTable[self.greyvalue.astype(np.uint8)]
         cv2.imwrite(self.outputfilename_aftergamma, self.grayValueAfterGamma)
+        cv2.imwrite(cfg.save_target_img_path, self.grayValueAfterGamma)
         
         # 归一化数组, 找最小值
-        self.normalized_intensity = self.grayValueAfterGamma / np.sum(self.grayValueAfterGamma)
+        self.totalGrayValue = np.sum(self.grayValueAfterGamma)
+        self.normalized_intensity = self.grayValueAfterGamma / self.totalGrayValue
         self.normalized_intensity = jnp.array(self.normalized_intensity)
         self.min_intensity=jnp.min(self.normalized_intensity)
-        self.minGrayValue = jnp.min(self.grayValueAfterGamma)
-        self.maxGrayValue = jnp.max(self.grayValueAfterGamma)
+        #self.minGrayValue = jnp.min(self.grayValueAfterGamma)
+        #self.maxGrayValue = jnp.max(self.grayValueAfterGamma)
     def queryDict(self):
         self.pixelNum=self.width*self.height
+        #self.averageGrayValue=self.totalGrayValue/self.pixelNum
         self.S_pixel=4*cfg.half_height*cfg.half_width/self.pixelNum
-        return {"normalized_intensity":self.normalized_intensity, "min_intensity":self.min_intensity, "width":self.width, "height":self.height,"pixelNum":self.pixelNum,"S_pixel":self.S_pixel,"minGrayValue":self.minGrayValue,"maxGrayValue":self.maxGrayValue}
+        return {"normalized_intensity":self.normalized_intensity, "min_intensity":self.min_intensity, "width":self.width, "height":self.height,"pixelNum":self.pixelNum,"S_pixel":self.S_pixel,"totalGrayValue":self.totalGrayValue}
+                #,"averageGrayValue":self.averageGrayValue}
+    #"minGrayValue":self.minGrayValue,"maxGrayValue":self.maxGrayValue}
     
     
 def queryIntensity(normalized_intensity,u,v,width,height):
