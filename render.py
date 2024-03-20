@@ -113,7 +113,7 @@ def renderIntensityToImg(imgdict, intensity, picname):
     print("picture saved as", picname)
 
 
-def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname):
+def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname,rm=cfg.rm,rn=cfg.rn):
     start_time = time.time()
     print("rendering...")
     surface.calculateAllNsOnGrid_forRender()
@@ -127,12 +127,12 @@ def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname):
     gddNvi3_for_render = dict["gddNvi3_for_render"]
     # print(gNui3_for_render)
 
-    indices = jnp.array([(j, i) for j in range(cfg.rn+1)
-                        for i in range(cfg.rm+1)])
+    indices = jnp.array([(j, i) for j in range(rn+1)
+                        for i in range(rm+1)])
     # print(indices)
     # uf.writeToJsonList("indices.json",indices)
     result = jit(batch_vmap(cf.args_calculation, in_axes=[0, 0, None, None, None, None, None, None, None, None, None, None, None], batch_size=2000**2))(
-        indices[:, 1], indices[:, 0], gNui3_for_render, gNvi3_for_render, Pij, gdNui3_for_render, gdNvi3_for_render, gddNui3_for_render, gddNvi3_for_render, cfg.ni, cfg.no, cfg.rm, cfg.rn)
+        indices[:, 1], indices[:, 0], gNui3_for_render, gNvi3_for_render, Pij, gdNui3_for_render, gdNvi3_for_render, gddNui3_for_render, gddNvi3_for_render, cfg.ni, cfg.no, rm, rn)
     # print("result:",result)
     # print("z:",result[3])
     end_time = time.time()
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     jax.config.update('jax_platform_name', 'gpu')
     uf.find_idle_gpu()
     #dict = uf.readFromDict(cfg.OT_dict_name)
-    dict = uf.readFromDict("./result_new/sorcery_37_256_gamma1.0/dict.npy")
+    dict = uf.readFromDict(cfg.OT_dict_test_name)
     Pij = dict["Pij"]
     M = dict["M"]
     N = dict["N"]
@@ -192,13 +192,13 @@ if __name__ == "__main__":
 
     img = imgp.Image(cfg.target_img_path)
     imgdict = img.queryDict()
-    Pij = lma.solve_using_LM(Pij, surface, imgdict)
+    #Pij = lma.solve_using_LM(Pij, surface, imgdict)
     #Pij = lmr.solve_using_LM(Pij, surface, imgdict)
     # rd.renderIntensityToImg(img_dict,final_intensity,cfg.render_picname_afterOpt)
-    render(Pij, surface, imgdict, cfg.render_picname_afterOptAlter)
+    #render(Pij, surface, imgdict, cfg.render_picname_afterOptAlter)
     #render(Pij, surface, imgdict, cfg.render_picname_afterOpt)
     
-    #render(Pij, surface, imgdict, os.path.join(os.path.dirname(cfg.render_picname_afterOpt), "reRender256.png"))    
+    render(Pij, surface, imgdict, os.path.join(os.path.dirname(cfg.render_picname_afterOpt), "reRender2560.png"),2560,2560)    
 
     # jax.config.update("jax_enable_x64", True)
     # uf.find_idle_gpu()
