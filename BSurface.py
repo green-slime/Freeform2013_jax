@@ -22,6 +22,8 @@ class BSurface:
         self.calculate_Ns()
         self.calculateAllNsOnGrid()
         self.calculateAllNsOnGrid_forObj()
+        self.calculateAllNsOnGrid_forRender()
+        self.calculateAllNsOnGrid_forInit()
         print("End establishing B-Spline surface.")
         
     def calculate_us_and_vs(self):
@@ -252,11 +254,62 @@ class BSurface:
         res={"gNui3_for_render":self.gNui3_for_render,"gNvi3_for_render":self.gNvi3_for_render,"gdNui3_for_render":self.gdNui3_for_render,"gdNvi3_for_render":self.gdNvi3_for_render,"gddNui3_for_render":self.gddNui3_for_render,"gddNvi3_for_render":self.gddNvi3_for_render}
         return res
     
+    def calculateAllNsOnGrid_forInit(self,M=cfg.Init_sample,N=cfg.Init_sample):
+        grid_u=np.arange(M+1)/(M)
+        grid_v=np.arange(N+1)/(N)
+        self.gNui3_forInit = []
+        self.gdNui3_forInit = []
+        self.gddNui3_forInit = []
+
+        for i in range(len(self.Nui3)):
+            _gNui3_forInit = []
+            _gdNui3_forInit = []
+            _gddNui3_forInit = []
+            for k in range(M+1):
+                _gNui3_forInit.append(self.Nui3[i](grid_u[k]))
+                _gdNui3_forInit.append(self.dNui3[i](grid_u[k]))
+                _gddNui3_forInit.append(self.ddNui3[i](grid_u[k]))
+            self.gNui3_forInit.append(_gNui3_forInit)
+            self.gdNui3_forInit.append(_gdNui3_forInit)
+            self.gddNui3_forInit.append(_gddNui3_forInit)
+
+        self.gNvi3_forInit = []
+        self.gdNvi3_forInit = []
+        self.gddNvi3_forInit = []
+
+        for j in range(len(self.Nvi3)):
+            _gNvi3_forInit = []
+            _gdNvi3_forInit = []
+            _gddNvi3_forInit = []
+            for k in range(N+1):
+                _gNvi3_forInit.append(self.Nvi3[j](grid_v[k]))
+                _gdNvi3_forInit.append(self.dNvi3[j](grid_v[k]))
+                _gddNvi3_forInit.append(self.ddNvi3[j](grid_v[k]))
+            self.gNvi3_forInit.append(_gNvi3_forInit)
+            self.gdNvi3_forInit.append(_gdNvi3_forInit)
+            self.gddNvi3_forInit.append(_gddNvi3_forInit)
+            
+        self.gNui3_forInit=jnp.array(self.gNui3_forInit)
+        self.gNvi3_forInit=jnp.array(self.gNvi3_forInit)
+        self.gdNui3_forInit=jnp.array(self.gdNui3_forInit)
+        self.gdNvi3_forInit=jnp.array(self.gdNvi3_forInit)
+        self.gddNui3_forInit=jnp.array(self.gddNui3_forInit)
+        self.gddNvi3_forInit=jnp.array(self.gddNvi3_forInit)
+        #print("end init dict initialize.")
+        
+    def query_dict_forInit(self):
+        res={"gNui3_forInit":self.gNui3_forInit,"gNvi3_forInit":self.gNvi3_forInit,"gdNui3_forInit":self.gdNui3_forInit,"gdNvi3_forInit":self.gdNvi3_forInit,"gddNui3_forInit":self.gddNui3_forInit,"gddNvi3_forInit":self.gddNvi3_forInit}
+        #print(res)
+        return res
+        
     def query_all_dict(self):
         dict1=self.queryDict()
         dict2=self.query_dict_for_render()
-        merged_dict = {**dict1, **dict2}
+        dict3=self.query_dict_forInit()
+        merged_dict = {**dict1, **dict2, **dict3}
         return merged_dict
+    
+    
 
 @jit 
 def query_S_one_pos(i,j,uk,vk,gNui3,gNvi3,Pij):

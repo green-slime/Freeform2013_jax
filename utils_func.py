@@ -6,10 +6,9 @@ from jax import vmap
 import os
 import sys
 import jax.numpy as jnp
-def writeToObj(surface: BSurface,Pij,objname=cfg.objname) -> None:
+def writeToObj(surface: BSurface,Pij,objname=cfg.objname,m=cfg.m,n=cfg.n) -> None:
     print("开始写入obj文件...")
     start_time=time.time()
-    m=cfg.m;n=cfg.n
     xmax=cfg.xmax; xmin=cfg.xmin; ymax=cfg.ymax; ymin=cfg.ymin
     size = m * n
     objfile = open(objname, 'w')
@@ -168,6 +167,30 @@ def put4picturesTogether(mode=1):
     # 保存拼接好的图片
     path=os.path.join(os.path.dirname(cfg.render_picname),"4pics.png")
     cv2.imwrite(path, canvas)
+
+import image_process as imgp
+def integrateReadFromDict(path=cfg.createDictName("train_Init")):
+    dict = readFromDict(path)
+    Pij=dict["Pij"]   
+    M=dict["M"];N=dict["N"]
+    print(f"M={M},N={N}")
+    assert(M==cfg.M and N==cfg.N)
+    #Pij=jnp.ones((cfg.M+3,cfg.N+3))
+    surface=BSurface.BSurface(M,N)
+    img = imgp.Image(cfg.target_img_path)
+    img_dict = img.queryDict()
+    print(f"successfully read data from {path}.")
+    return Pij,surface,img_dict
+    
+
+    
     
 if __name__ == "__main__":
-    put4picturesTogether()
+    path = "/data/wzr/Freeform2013_jax/result_final/zju_59_512_gamma1.0/"
+    Pij, surface, img_dict = integrateReadFromDict(
+        path+"OT_dict_test_train_onlyOT_2nd.npy")
+    writeToObj(surface, Pij, path+"zju59.obj", 400, 400)
+    import render as rd
+    #rd.render_withColor(Pij, surface, img_dict, path+"colored_render_test2.png")
+    
+    

@@ -47,6 +47,7 @@ def rect_boundary(tx, ty):
     choicelist = jnp.array([jnp.sqrt((tx+w)**2+(ty+h)**2), jnp.abs(tx+w), jnp.sqrt((tx+w)**2+(ty-h)**2), jnp.abs(ty-h),
                            jnp.sqrt((tx-w)**2+(ty-h)**2), jnp.abs(tx-w), jnp.sqrt((tx-w)**2+(ty+h)**2), jnp.abs(ty+h), jnp.min(inner_array)])
     # print("choicelist:",choicelist)
+    # return dist((tx,ty),rect_boundary) with no square
     return jnp.select(condlist, choicelist, 0.0)
 
 
@@ -69,13 +70,20 @@ def img_E(tx, ty, img_dict):
     height = img_dict["height"]
     normalized_intensity = img_dict["normalized_intensity"]
     weight = 10.0
-    E1 = 4.0/(S_pixel/min_intensity+4*w/weight+4*h/weight+2*jnp.pi/(weight**2))
+    E1 = cfg.glassArea*I(tx,ty)/(S_pixel/min_intensity+4*w/weight+4*h/weight+2*jnp.pi/(weight**2))
     E0 = E1*S_pixel/min_intensity
     return lax.cond((tx <= w) & (tx >= -w) & (ty <= h) & (ty >= -h), lambda x: inner_img_E(tx, ty, S_pixel, E0, width, height, normalized_intensity), lambda x: E1*jnp.exp(-weight*rect_boundary(tx, ty)), 0.0)
 
 
-if __name__ == "__main__":
-    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-    print("result:", rect_boundary(1, 1))
-    print("result:", rect_boundary(3, 7))
-    print("result:", rect_boundary(-7, -4))
+@jit 
+def E_forInit(tx, ty,img_dict):
+    w = cfg.half_width
+    h = cfg.half_height
+    S_pixel = img_dict["S_pixel"]
+    width = img_dict["width"]
+    height = img_dict["height"]
+    weight = 5.0
+    # notice that min_intensity = 1/(width*height) = S_pixel/cfg.domainArea
+    E1 = cfg.glassArea*I(tx,ty)/(cfg.domainArea+4*w/weight+4*h/weight+2*jnp.pi/(weight**2))
+    E0 = E1*cfg.domainArea
+    return lax.cond((tx <= w) & (tx >= -w) & (ty <= h) & (ty >= -h), lambda x: E0/cfg.domainArea, lambda x: E1*jnp.exp(-weight*rect_boundary(tx, ty)), 0.0)

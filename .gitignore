@@ -1,8 +1,10 @@
 result/
 result_new/
 result_test/
+result_final/
 *.png
 *.jpg
 /render_test/
 __pycache__/
 jax instruction.txt
+switch_cuda.sh

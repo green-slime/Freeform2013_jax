@@ -16,7 +16,7 @@ class Image:
             raise Exception("图像加载失败, 请检查文件路径是否正确")
         # 获取图像大小
         image = cv2.resize(image, (cfg.rx, cfg.ry)) # (width, height)
-        self.width = image.shape[1]
+        self.width = image.shape[1] #shape:(height,width,(channels))
         self.height = image.shape[0]
         # 转换为灰度图像
         grayImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -50,7 +50,7 @@ class Image:
     def queryDict(self):
         self.pixelNum=self.width*self.height
         #self.averageGrayValue=self.totalGrayValue/self.pixelNum
-        self.S_pixel=4*cfg.half_height*cfg.half_width/self.pixelNum
+        self.S_pixel=cfg.domainArea/self.pixelNum
         return {"normalized_intensity":self.normalized_intensity, "min_intensity":self.min_intensity, "width":self.width, "height":self.height,"pixelNum":self.pixelNum,"S_pixel":self.S_pixel,"totalGrayValue":self.totalGrayValue}
                 #,"averageGrayValue":self.averageGrayValue}
     #"minGrayValue":self.minGrayValue,"maxGrayValue":self.maxGrayValue}

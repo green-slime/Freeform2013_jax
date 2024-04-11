@@ -39,9 +39,18 @@ def makeMatrix(add_index):
 
     # print("ray loss:"+str(round(ray_loss*100/(cfg.rm+1)/(cfg.rn+1),3))+"%.")
     return grid_array
+@jit 
+def makeMatrix_withLoss(add_index):
+    data = jnp.ones(len(add_index))
+    grid_array = BCOO((data, add_index), shape=(cfg.ry+1, cfg.rx+1))
+    ray_loss = grid_array.todense()[cfg.ry, cfg.rx]
+    grid_array = grid_array.todense()[0:cfg.ry, 0:cfg.rx]  # [0,ry)
+
+    # print("ray loss:"+str(round(ray_loss*100/(cfg.rm+1)/(cfg.rn+1),3))+"%.")
+    return grid_array,ray_loss
 
 @jit
-def render_loss_Alter(Pij, renderMeshdict, target_intensity: jnp.ndarray):
+def render_loss_Alter_withRayLoss(Pij, renderMeshdict, target_intensity: jnp.ndarray):
     # when returnType=2, return result_intensity
     gNui3_for_render = renderMeshdict["gNui3_for_render"]
     gNvi3_for_render = renderMeshdict["gNvi3_for_render"]
@@ -52,20 +61,33 @@ def render_loss_Alter(Pij, renderMeshdict, target_intensity: jnp.ndarray):
     indices = jnp.array([(j, i) for j in range(cfg.rn+1)
                         for i in range(cfg.rm+1)])
 
-    result = jit(batch_vmap(cf.args_calculation, in_axes=[0, 0, None, None, None, None, None, None, None, None, None, None, None], batch_size=int(cfg.sample_chunk_size/2)))(indices[:, 1], indices[:, 0], gNui3_for_render, gNvi3_for_render, Pij, gdNui3_for_render, gdNvi3_for_render, gddNui3_for_render, gddNvi3_for_render, cfg.ni, cfg.no, cfg.rm, cfg.rn)
+    result = jit(batch_vmap(cf.args_calculation, in_axes=[0, 0, None, None, None, None, None, None, None, None, None, None, None], batch_size=int(cfg.sample_chunk_size)))(indices[:, 1], indices[:, 0], gNui3_for_render, gNvi3_for_render, Pij, gdNui3_for_render, gdNvi3_for_render, gddNui3_for_render, gddNvi3_for_render, cfg.ni, cfg.no, cfg.rm, cfg.rn)
 
     result = jnp.transpose(jnp.array([result[-2], result[-1]]))
     add_index = jit(batch_vmap(decideOnWhichGrid, in_axes=[
-                    0, 0], batch_size=int(cfg.sample_chunk_size/2)))(result[:, 0], result[:, 1])
+                    0, 0], batch_size=int(cfg.sample_chunk_size)))(result[:, 0], result[:, 1])
 
-    grid_array = makeMatrix(add_index)
+    #grid_array = makeMatrix(add_index)
+    
+    grid_array, rayloss = makeMatrix_withLoss(add_index)
     # when out of range, add_index[i] will be [-1,-1], so nothing will be added to grid_array due to jnp's lazy evaluation
 
     allNum = jnp.sum(grid_array)
+    print(f"all_shouldbe={(cfg.rm+1)*(cfg.rn+1)},all_detected={allNum+rayloss}")
+    print("ray loss:"+str(round(rayloss*100/(allNum+grid_array),3))+"%.")
+    #jax.debug.print("rayLoss rate={}%",round(rayloss*100/allNum,3))
+    #jax.debug.print("allNum={}",allNum)
+    #print("m*n=",(cfg.rm+1)*(cfg.rn+1))
     result_intensity = grid_array/allNum
 
     # return jax.lax.cond(returnType==1,lambda x:jnp.linalg.norm(result_intensity-target_intensity, ord=2),lambda x:result_intensity,0.0)
-    return jnp.reshape(result_intensity-target_intensity, (cfg.ry*cfg.rx,)) # become a 1D array
+    #return jnp.reshape(jnp.divide(result_intensity-target_intensity,target_intensity), (cfg.ry*cfg.rx,)) # become a 1D array
+    return jnp.reshape(result_intensity-target_intensity,(cfg.ry*cfg.rx,)),rayloss
+
+@jit 
+def render_loss_Alter(Pij, renderMeshdict, target_intensity: jnp.ndarray):
+    return render_loss_Alter_withRayLoss(Pij, renderMeshdict, target_intensity)[0]
+
 
 @jit
 def render_loss(Pij, renderMeshdict, target_intensity: jnp.ndarray):
@@ -112,8 +134,8 @@ def renderIntensityToImg(imgdict, intensity, picname):
 
     print("picture saved as", picname)
 
-
-def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname,rm=cfg.rm,rn=cfg.rn):
+import showColoredIntensity as sci
+def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname,rm=cfg.rm,rn=cfg.rn,colored_picPath=None):
     start_time = time.time()
     print("rendering...")
     surface.calculateAllNsOnGrid_forRender(rm,rn)
@@ -150,6 +172,10 @@ def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname,rm=
     # uf.writeToJsonList("add_index.json",add_index)
     # print(need_to_add)
     grid_array = makeMatrix(add_index)
+    
+    # Here we introduce coloredRenderer
+    if not colored_picPath==None:     
+        sci.renderColoredIntensity(np.array(grid_array),colored_picPath)
     # when out of range, add_index[i] will be [-1,-1], so nothing will be added to grid_array due to jnp's lazy evaluation
     # print(grid_array)
     # maxNum=jnp.max(grid_array);minNum=jnp.min(grid_array);
@@ -162,6 +188,7 @@ def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname,rm=
     final_grid_array = totalGrayValue_shouldbe*result_intensity
     # print(grid_array)
     final_grid_array = np.array(final_grid_array)
+    final_grid_array = np.clip(final_grid_array,0,255) # uint8 will mod 256
     final_grid_array = final_grid_array.astype(np.uint8)
     # print(type(grid_array))
 
@@ -173,6 +200,7 @@ def render(Pij, surface: BSurface, imgdict: dict, picname=cfg.render_picname,rm=
     print("rendering finished. Computation time cost", end_time-start_time, "s.")
     print("picture saved as", picname)
 
+
 import os
 import LM_algo_Alter as lma
 import LM_algo_for_renderLoss as lmr
@@ -181,7 +209,8 @@ if __name__ == "__main__":
     jax.config.update('jax_platform_name', 'gpu')
     uf.find_idle_gpu()
     #dict = uf.readFromDict(cfg.OT_dict_name)
-    dict = uf.readFromDict(cfg.OT_dict_test_name)
+    #dict = uf.readFromDict(cfg.OT_dict_test_name)
+    dict = uf.readFromDict("/data/wzr/Freeform2013_jax/result_final/einstein_49_512_gamma1.0//OT_dict_test_train_onlyOT.npy")
     Pij = dict["Pij"]
     M = dict["M"]
     N = dict["N"]
@@ -198,7 +227,7 @@ if __name__ == "__main__":
     #render(Pij, surface, imgdict, cfg.render_picname_afterOptAlter)
     #render(Pij, surface, imgdict, cfg.render_picname_afterOpt)
     
-    render(Pij, surface, imgdict, os.path.join(os.path.dirname(cfg.render_picname_afterOpt), "reRender2560.png"),2560,2560)    
+    render(Pij, surface, imgdict, os.path.join("/data/wzr/Freeform2013_jax/result_final/einstein_49_512_gamma1.0/", "reRender1280.png"),colored_picPath="/data/wzr/Freeform2013_jax/result_final/einstein_49_512_gamma1.0/reRender1280_colored.png")    
 
     # jax.config.update("jax_enable_x64", True)
     # uf.find_idle_gpu()

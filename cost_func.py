@@ -57,4 +57,31 @@ def inner_cost_func(no, ni, a, b, z, zx, zy, tx, ty, tz, zxx, zyy, zxy, img_dict
 
 @jit
 def boundary_cost_func(tx, ty):
-    return df.boundary_test(tx, ty)
+    return df.rect_boundary(tx, ty)
+
+@jit
+def inner_cost_func_forInit(no, ni, a, b, z, zx, zy, tx, ty, tz, zxx, zyy, zxy, img_dict):
+    # cost function for inner points
+    c = no*b+ni*(zx*zx+zy*zy)
+    A1 = (z - tz) * (z - tz) * no / b * (1 + zx * zx + zy * zy) * \
+        (no * b - ni) * (no * b - ni) / (c * c * c)
+    A2 = (z - tz) * ((no * b - ni) * (no * b * (zy * zy + 1) - ni * zx *
+                                      zx) + no * ni * a / b * zx * zx * (zx * zx + zy * zy + 1)) / (c * c)
+    A3 = (z - tz) * ((no * b - ni) * (no * b * (zx * zx + 1) - ni * zy *
+                                      zy) + no * ni * a / b * zy * zy * (zx * zx + zy * zy + 1)) / (c * c)
+    A4 = 2 * (z - tz) * zx * zy * (no * ni * a / b * (zx * zx +
+                                                      zy * zy + 1) - (no * no * b * b - ni * ni)) / (c * c)
+    A5 = no * b * (zx * zx + zy * zy + 1) / c - \
+        df.I(tx, ty)/df.E_forInit(tx, ty, img_dict)
+    # temp_term=lax.cond(jnp.abs(df.E_test(tx,ty))<1e-14,lambda x:0.0,lambda x:df.I(tx,ty)/df.E_test(tx,ty),0.0)
+    # A5 = no * b * (zx * zx + zy * zy + 1) / c-temp_term
+    # A5 = no * b * (zx * zx + zy * zy + 1) / c-df.I(tx,ty)/df.E_test(tx,ty)
+    res = A1 * (zxx * zyy - zxy * zxy) + A2 * zxx + A3 * zyy + A4 * zxy + A5
+    return res
+
+@jit
+def cost_func_forInit(i,j,tx,ty,cols=cfg.M_sample, rows=cfg.N_sample):
+    # with determined position
+    x_target=-cfg.half_width+i*2*cfg.half_width/cols
+    y_target=-cfg.half_height+j*2*cfg.half_height/rows
+    return jnp.sqrt((tx-x_target)**2+(ty-y_target)**2)

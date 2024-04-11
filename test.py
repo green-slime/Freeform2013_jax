@@ -16,7 +16,17 @@ import sys
 import utils_func as uf
 from math import floor
 from timeit import timeit
+
+a=np.array([277])
+print(a.astype(np.uint8))
+
+
+
+
 uf.find_idle_gpu()
+
+uf.compareTwoImg("/data/wzr/Freeform2013_jax/result_new/blbl_46_1280_gamma1.0/128_1280_img_test7.png","/data/wzr/Freeform2013_jax/result_new/blbl_46_1280_gamma1.0/128_1280_img_test9.png")
+input()
 
 def testFunc(a,b):
     return a+b 
