@@ -6,6 +6,8 @@ import jax.numpy as jnp
 from jax import lax
 import config as cfg
 
+from showColoredIntensity import renderColoredIntensity
+
 class Image:
     def __init__(self, filename, gamma=cfg.gamma):
         self.gamma = gamma
@@ -38,13 +40,17 @@ class Image:
         # 保存aftergamma的灰度图像
         self.grayValueAfterGamma = 255*self.gammavalueTable[self.greyvalue.astype(np.uint8)]
         cv2.imwrite(self.outputfilename_aftergamma, self.grayValueAfterGamma)
+        os.makedirs(cfg.folder_name, exist_ok=True)
+        os.makedirs(cfg.prefix_name, exist_ok=True)
         cv2.imwrite(cfg.save_target_img_path, self.grayValueAfterGamma)
-        
+               
         # 归一化数组, 找最小值
         self.totalGrayValue = np.sum(self.grayValueAfterGamma)
         self.normalized_intensity = self.grayValueAfterGamma / self.totalGrayValue
+        renderColoredIntensity(np.array(self.normalized_intensity),cfg.save_colored_target_img_path)
         self.normalized_intensity = jnp.array(self.normalized_intensity)
         self.min_intensity=jnp.min(self.normalized_intensity)
+        print(f"the max_min intensity ratio is {jnp.max(self.normalized_intensity)/self.min_intensity}:1")
         #self.minGrayValue = jnp.min(self.grayValueAfterGamma)
         #self.maxGrayValue = jnp.max(self.grayValueAfterGamma)
     def queryDict(self):

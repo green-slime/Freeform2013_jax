@@ -186,10 +186,10 @@ def integrateReadFromDict(path=cfg.createDictName("train_Init")):
     
     
 if __name__ == "__main__":
-    path = "/data/wzr/Freeform2013_jax/result_final/zju_59_512_gamma1.0/"
+    path = "/data/wzr/Freeform2013_jax/result_final/mao_59_512_gamma1.0/"
     Pij, surface, img_dict = integrateReadFromDict(
-        path+"OT_dict_test_train_onlyOT_2nd.npy")
-    writeToObj(surface, Pij, path+"zju59.obj", 400, 400)
+        path+"OT_dict_test_train_Init_forOnlyOT.npy")
+    writeToObj(surface, Pij, path+"init.obj", 400, 400)
     import render as rd
     #rd.render_withColor(Pij, surface, img_dict, path+"colored_render_test2.png")
     

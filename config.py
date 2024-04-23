@@ -1,25 +1,29 @@
 from math import floor
+import cases
 # M,N controls the B-Spline, the number of control points is M+3 * N+3
-M = 49
-N = M
+M = 50
+N = M+1
 variable_chunk_size = 15*15
 # M_sample,N_sample controls the sample points in the target plane, the number of sample points is M_sample*N_sample
-M_sample = 800
+M_sample = 512
 N_sample = M_sample
-Init_sample=M*4
+Init_sample=4*M
 sample_chunk_size = 100**2
 # half_width, half_height are the half width and half height of the target domain
 #half_width = 886/442
-half_height = 1
-half_width=1
+#half_height = 1
+#half_width=1
 #half_height=160/128
+#target_img_path, half_width, half_height, rx, ry = cases.mao.get()
+target_img_path, half_width, half_height, rx, ry = cases.zju.get()
+
 domainArea = 2*2*half_width*half_height
 
 #target_img_path = './image/sorcery.jpg'
 #target_img_path = './image/einstein.jpg'
 #target_img_path = './image/blbl.jpg'
 #target_img_path = './image/mao.png'
-target_img_path = './image/zju.png'
+#target_img_path = './image/zju.png'
 gamma = 1.0
 
 # the following parameters remain relatively constant
@@ -73,7 +77,8 @@ train2_dict_name = prefix_name + "train2_dict.npy"
 memory_profile_name = prefix_name + "memory.prof"
 img_dict_name = prefix_name + "img_dict.npy"
 render_folder_path = prefix_name + "render_results/"
-save_target_img_path = prefix_name +"target_img.png"
+save_target_img_path = prefix_name +"targetImg.png"
+save_colored_target_img_path = prefix_name + "targetColoredImg.png"
 
 OT_dict_test_name = prefix_name + "OT_dict_test.npy"
 OT_dict_test2_name = prefix_name + "OT_dict_test2.npy"
@@ -95,8 +100,8 @@ dm = (xmax-xmin)/rm  # on glass
 dn = (ymax-ymin)/rn
 # render resolution
 #rx = int(128*886/442)
-ry = 64
-rx = 64
+#ry = 128
+#rx = 64
 #ry=int(rx*160/128)
 dx = 2*half_width/rx  # on target domain
 dy = 2*half_height/ry

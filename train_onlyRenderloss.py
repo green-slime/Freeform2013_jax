@@ -23,27 +23,15 @@ def loss_func(dict, Pij, indices, img_dict, using_varyweight_flag, flag_printout
     '''
     Here we introduce render loss.
     '''
-    render_loss = rd.render_loss_Alter(
-        Pij, dict, img_dict["normalized_intensity"])  # vector
+    render_loss = rd.render_loss_with_inputIndices(
+        Pij, indices, dict, img_dict["normalized_intensity"])  # vector
     return render_loss
     return res_final[0]  # since res=[a,b,...] --> res_final=[[a',b',...]]
     return res
 
 def make_indices():
-    # don't change with the same cfg.M_sample and cfg.N_sample
-    start_time = time.time()
-    Ms = cfg.M_sample
-    Ns = cfg.N_sample
-    indices = jnp.array([(j, i) for j in range(Ns+1) for i in range(Ms+1)])
-    bool_mask = (1 <= indices[:, 1]) & (
-        indices[:, 1] <= Ms-1) & (1 <= indices[:, 0]) & (indices[:, 0] <= Ns-1)
-    # Expand the original array with the boolean mask
-    indices = jnp.concatenate([indices, bool_mask[:, jnp.newaxis]], axis=1)
-    # now indices looks like (j,i,bool)
-    end_time = time.time()
-    print('indices establish time cost', end_time-start_time, 's')
+    indices = jnp.array([(j, i) for j in range(cfg.rn+1) for i in range(cfg.rm+1)])
     return indices
-
 
 @jit
 def Jacobi_for_one_pos(i, j, dict, Pij, indices, avg_len, img_dict, using_varyweight_flag):
@@ -268,3 +256,4 @@ if __name__ == "__main__":
 
     # surface only depends on M and N : s=BSurface.BSurface(cfg.M,cfg.N)
     uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N}, cfg.createDictName("train_onlyRenderloss"))
+    uf.writeToObj(surface, Pij, cfg.objname)

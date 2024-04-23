@@ -323,7 +323,7 @@ def query_S(uk,vk,gNui3:jnp.ndarray,gNvi3:jnp.ndarray,Pij:jnp.ndarray):
     for i in range(cfg.M+3):
         for j in range(cfg.N+3):
             res+=gNui3[i][uk]*gNvi3[j][vk]*Pij[j][i]'''
-    res=jnp.dot(gNui3[:,uk],jnp.dot(Pij,gNvi3[:,vk]))
+    res=jnp.dot(gNvi3[:,vk],jnp.dot(Pij,gNui3[:,uk]))
 
     end_time=time.time()
     print('query_S time cost',end_time-start_time,'s')
@@ -335,7 +335,7 @@ def query_Su(uk,vk,gdNui3:jnp.ndarray,gNvi3:jnp.ndarray,Pij:jnp.ndarray):
     for i in range(cfg.M+3):
         for j in range(cfg.N+3):
             res+=gdNui3[i][uk]*gNvi3[j][vk]*Pij[j][i]'''
-    res=jnp.dot(gdNui3[:,uk],jnp.dot(Pij,gNvi3[:,vk]))
+    res=jnp.dot(gNvi3[:,vk],jnp.dot(Pij,gdNui3[:,uk]))
     return res
     #return sum(res)
 @jit
@@ -344,7 +344,7 @@ def query_Sv(uk,vk,gNui3:jnp.ndarray,gdNvi3:jnp.ndarray,Pij:jnp.ndarray):
     for i in range(cfg.M+3):
         for j in range(cfg.N+3):
             res+=gNui3[i][uk]*gdNvi3[j][vk]*Pij[j][i]'''
-    res=jnp.dot(gNui3[:,uk],jnp.dot(Pij,gdNvi3[:,vk]))
+    res=jnp.dot(gdNvi3[:,vk],jnp.dot(Pij,gNui3[:,uk]))
     return res
 
 @jit
@@ -353,7 +353,7 @@ def query_Suu(uk,vk,gddNui3:jnp.ndarray,gNvi3:jnp.ndarray,Pij:jnp.ndarray):
     for i in range(cfg.M+3):
         for j in range(cfg.N+3):
             res+=gddNui3[i][uk]*gNvi3[j][vk]*Pij[j][i]'''
-    res=jnp.dot(gddNui3[:,uk],jnp.dot(Pij,gNvi3[:,vk]))
+    res=jnp.dot(gNvi3[:,vk],jnp.dot(Pij,gddNui3[:,uk]))
     return res
 @jit
 def query_Suv(uk,vk,gdNui3:jnp.ndarray,gdNvi3:jnp.ndarray,Pij:jnp.ndarray):
@@ -361,7 +361,7 @@ def query_Suv(uk,vk,gdNui3:jnp.ndarray,gdNvi3:jnp.ndarray,Pij:jnp.ndarray):
     for i in range(cfg.M+3):
         for j in range(cfg.N+3):
             res+=gdNui3[i][uk]*gdNvi3[j][vk]*Pij[j][i]'''
-    res=jnp.dot(gdNui3[:,uk],jnp.dot(Pij,gdNvi3[:,vk]))
+    res=jnp.dot(gdNvi3[:,vk],jnp.dot(Pij,gdNui3[:,uk]))
     return res
 @jit
 def query_Svv(uk,vk,gNui3:jnp.ndarray,gddNvi3:jnp.ndarray,Pij:jnp.ndarray):
@@ -369,7 +369,7 @@ def query_Svv(uk,vk,gNui3:jnp.ndarray,gddNvi3:jnp.ndarray,Pij:jnp.ndarray):
     for i in range(cfg.M+3):
         for j in range(cfg.N+3):
             res+=gNui3[i][uk]*gddNvi3[j][vk]*Pij[j][i]'''
-    res=jnp.dot(gNui3[:,uk],jnp.dot(Pij,gddNvi3[:,vk]))
+    res=jnp.dot(gddNvi3[:,vk],jnp.dot(Pij,gNui3[:,uk]))
     return res
 
 def test():

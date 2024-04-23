@@ -16,12 +16,10 @@ import sys
 import utils_func as uf
 from math import floor
 from timeit import timeit
-
-a=np.array([277])
-print(a.astype(np.uint8))
-
-
-
+import cv2
+pic1=cv2.imread("/data/wzr/Freeform2013_jax/image/zju.png")
+pic1=255-pic1
+cv2.imwrite("/data/wzr/Freeform2013_jax/image/zju_inverse.png",pic1)
 
 uf.find_idle_gpu()
 

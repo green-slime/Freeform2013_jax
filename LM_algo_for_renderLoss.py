@@ -131,7 +131,7 @@ if __name__ == "__main__":
     jax.config.update("jax_enable_x64", True)
     jax.config.update('jax_platform_name', 'gpu')
     uf.find_idle_gpu()
-    dict = uf.readFromDict(cfg.OT_dict_name)
+    dict = uf.readFromDict(cfg.prefix_name+"OT_dict_test_train_Init_forOnlyOT.npy")
     Pij=dict["Pij"]   
     M=dict["M"];N=dict["N"]
     print(M,N)
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     imgdict=img.queryDict()
     Pij=solve_using_LM(Pij,surface,imgdict)
     #rd.renderIntensityToImg(img_dict,final_intensity,cfg.render_picname_afterOpt)
-    rd.render(Pij,surface,imgdict,cfg.render_picname_afterOpt)
+    rd.render(Pij,surface,imgdict,cfg.prefix_name+f"onlyRenderloss.png")
     #uf.writeToObj(surface,Pij,cfg.objname_afterOpt)
     
-    uf.compareTwoImg(cfg.render_picname,cfg.render_picname_afterOpt)
+    #uf.compareTwoImg(cfg.render_picname,cfg.render_picname_afterOpt)

@@ -69,7 +69,7 @@ def img_E(tx, ty, img_dict):
     width = img_dict["width"]
     height = img_dict["height"]
     normalized_intensity = img_dict["normalized_intensity"]
-    weight = 10.0
+    weight = 20.0
     E1 = cfg.glassArea*I(tx,ty)/(S_pixel/min_intensity+4*w/weight+4*h/weight+2*jnp.pi/(weight**2))
     E0 = E1*S_pixel/min_intensity
     return lax.cond((tx <= w) & (tx >= -w) & (ty <= h) & (ty >= -h), lambda x: inner_img_E(tx, ty, S_pixel, E0, width, height, normalized_intensity), lambda x: E1*jnp.exp(-weight*rect_boundary(tx, ty)), 0.0)
@@ -82,7 +82,7 @@ def E_forInit(tx, ty,img_dict):
     S_pixel = img_dict["S_pixel"]
     width = img_dict["width"]
     height = img_dict["height"]
-    weight = 5.0
+    weight = 20.0
     # notice that min_intensity = 1/(width*height) = S_pixel/cfg.domainArea
     E1 = cfg.glassArea*I(tx,ty)/(cfg.domainArea+4*w/weight+4*h/weight+2*jnp.pi/(weight**2))
     E0 = E1*cfg.domainArea

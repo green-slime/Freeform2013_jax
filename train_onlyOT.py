@@ -24,9 +24,9 @@ def loss_func_for_one_pos(i, j, bool, gNui3, gNvi3, Pij, gdNui3, gdNvi3, gddNui3
     x, y, curIndex, z, zx, zy, zxx, zxy, zyy, b, Ox, Oy, Oz, tx, ty = cost_func.args_calculation(
         i, j, gNui3, gNvi3, Pij, gdNui3, gdNvi3, gddNui3, gddNvi3, ni, no)
     # print("(j,i)=,",j,i,"z=",z,"tx,ty=",tx,ty)
-    res = lax.cond(bool, lambda x: cost_func.inner_cost_func(no, ni, a, b, z, zx, zy, tx, ty,
-                   tz, zxx, zyy, zxy, img_dict), lambda x: cost_func.boundary_cost_func(tx, ty)*weight, 0)
-
+    #res = lax.cond(bool, lambda x: cost_func.inner_cost_func(no, ni, a, b, z, zx, zy, tx, ty, tz, zxx, zyy, zxy, img_dict), lambda x: cost_func.boundary_cost_func(tx, ty)*weight, 0)
+    res = cost_func.inner_cost_func(no, ni, a, b, z, zx, zy, tx, ty, tz, zxx, zyy, zxy, img_dict)
+    #return jnp.log(jnp.abs(res)+1)
     return res
 
 
@@ -35,6 +35,7 @@ def loss_func(dict, Pij, indices, img_dict, using_varyweight_flag, flag_printout
     # loss function
     # start_time=time.time()
     # res=jnp.zeros(cfg.totalNum)
+    using_varyweight_flag = False
     gNui3 = dict["gNui3"]
     gNvi3 = dict["gNvi3"]
     gdNui3 = dict["gdNui3"]
@@ -47,7 +48,7 @@ def loss_func(dict, Pij, indices, img_dict, using_varyweight_flag, flag_printout
     tz = cfg.tz
     res = jit(batch_vmap(loss_func_for_one_pos, in_axes=[0, 0, 0, None, None, None, None, None, None, None, None, None, None, None, None], batch_size=cfg.sample_chunk_size))(
         indices[:, 1], indices[:, 0], indices[:, 2], gNui3, gNvi3, Pij, gdNui3, gdNvi3, gddNui3, gddNvi3, ni, no, a, tz, img_dict)
-
+    return res
     # let inner loss and edge loss has the same maximum
     condition = indices[:, 2]
     zero_array = jnp.zeros((1, len(indices)))
@@ -69,6 +70,7 @@ def loss_func(dict, Pij, indices, img_dict, using_varyweight_flag, flag_printout
     #lax.cond(flag_printout, lambda x: jax.debug.print("inner_result={}, boundary_result={}, weight={}, varyweight={}",inner_norm, boundary_norm, weight, varyweight), lambda x: None, 0)
     res_final = true_result+false_result*weight
     # jax.debug.print("res_final:{}",res_final)
+    return jnp.array([jnp.linalg.norm(res_final)])
     return res_final[0]  # since res=[a,b,...] --> res_final=[[a',b',...]]
     return res
 
@@ -323,5 +325,5 @@ if __name__ == "__main__":
 
     # surface only depends on M and N : s=BSurface.BSurface(cfg.M,cfg.N)
     uf.saveToDict({"Pij": Pij, "M": cfg.M, "N": cfg.N},cfg.createDictName("train_onlyOT_2nd"))
-    uf.writeToObj(surface, Pij, cfg.prefix_name+"zju119.obj")
+    uf.writeToObj(surface, Pij, cfg.prefix_name+f"{cfg.name}{cfg.M}.obj")
     

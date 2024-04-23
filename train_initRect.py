@@ -29,6 +29,7 @@ def loss_func_for_one_pos(i, j, bool, gNui3, gNvi3, Pij, gdNui3, gdNvi3, gddNui3
     # Here we decide the correspondence between the spline and the target plane
 
     res=cost_func.cost_func_forInit(i,j,tx,ty,cols=cfg.Init_sample,rows=cfg.Init_sample)
+    return jnp.log(jnp.abs(res)+1)
     return res
 
 
@@ -48,6 +49,7 @@ def loss_func(dict, Pij, indices, img_dict, using_varyweight_flag, flag_printout
     res = jit(batch_vmap(loss_func_for_one_pos, in_axes=[0, 0, 0, None, None, None, None, None, None, None, None, None, None, None, None], batch_size=cfg.sample_chunk_size))(
         indices[:, 1], indices[:, 0], indices[:, 2], gNui3, gNvi3, Pij, gdNui3, gdNvi3, gddNui3, gddNvi3, ni, no, a, tz, img_dict)
 
+    #jax.debug.print("res={}",res)
     return res
 
 
