@@ -309,7 +309,21 @@ class BSurface:
         merged_dict = {**dict1, **dict2, **dict3}
         return merged_dict
     
-    
+@jit
+def query_all_S(dict,Pij):
+    '''
+    calculate S, Su, Sv, Suu, Suv, Svv
+    '''
+    gNui3=dict["gNui3"];gNvi3=dict["gNvi3"]
+    gdNui3=dict["gdNui3"];gdNvi3=dict["gdNvi3"]
+    gddNui3=dict["gddNui3"];gddNvi3=dict["gddNvi3"]
+    Sij=jnp.dot(jnp.dot(jnp.transpose(gNvi3),Pij),gNui3)
+    Suij=jnp.dot(jnp.dot(jnp.transpose(gNvi3),Pij),gdNui3)
+    Svij=jnp.dot(jnp.dot(jnp.transpose(gdNvi3),Pij),gNui3)
+    Suuij=jnp.dot(jnp.dot(jnp.transpose(gNvi3),Pij),gddNui3)
+    Suvij=jnp.dot(jnp.dot(jnp.transpose(gdNvi3),Pij),gdNui3)
+    Svvij=jnp.dot(jnp.dot(jnp.transpose(gddNvi3),Pij),gNui3)
+    return {"Sij":Sij,"Suij":Suij,"Svij":Svij,"Suuij":Suuij,"Suvij":Suvij,"Svvij":Svvij}
 
 @jit 
 def query_S_one_pos(i,j,uk,vk,gNui3,gNvi3,Pij):
