@@ -1,2 +1,3 @@
 # Freeform2013_jax
-using jax to implement freeform design
+
+研究代码，尚待整理。

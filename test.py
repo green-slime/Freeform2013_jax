@@ -17,13 +17,13 @@ import utils_func as uf
 from math import floor
 from timeit import timeit
 import cv2
-pic1=cv2.imread("/data/wzr/Freeform2013_jax/image/zju.png")
+pic1=cv2.imread("./image/zju.png")
 pic1=255-pic1
-cv2.imwrite("/data/wzr/Freeform2013_jax/image/zju_inverse.png",pic1)
+cv2.imwrite("./image/zju_inverse.png",pic1)
 
 uf.find_idle_gpu()
 
-uf.compareTwoImg("/data/wzr/Freeform2013_jax/result_new/blbl_46_1280_gamma1.0/128_1280_img_test7.png","/data/wzr/Freeform2013_jax/result_new/blbl_46_1280_gamma1.0/128_1280_img_test9.png")
+uf.compareTwoImg("./result_new/blbl_46_1280_gamma1.0/128_1280_img_test7.png","./result_new/blbl_46_1280_gamma1.0/128_1280_img_test9.png")
 input()
 
 def testFunc(a,b):

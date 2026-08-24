@@ -233,7 +233,7 @@ if __name__ == "__main__":
     uf.find_idle_gpu()
     #dict = uf.readFromDict(cfg.OT_dict_name)
     #dict = uf.readFromDict(cfg.OT_dict_test_name)
-    dict = uf.readFromDict("/data/wzr/Freeform2013_jax/result_final/zju_67_800_gamma1.0/OT_dict_test_train_onlyOT_2nd.npy")
+    dict = uf.readFromDict("./result_final/zju_67_800_gamma1.0/OT_dict_test_train_onlyOT_2nd.npy")
     Pij = dict["Pij"]
     M = dict["M"]
     N = dict["N"]
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     # rd.renderIntensityToImg(img_dict,final_intensity,cfg.render_picname_afterOpt)
     #render(Pij, surface, imgdict, cfg.render_picname_afterOptAlter)
     #render(Pij, surface, imgdict, cfg.render_picname_afterOpt)
-    path = "/data/wzr/Freeform2013_jax/result_final/zju_67_800_gamma1.0/"
+    path = "./result_final/zju_67_800_gamma1.0/"
     render(Pij, surface, imgdict, os.path.join(path, "reRender5120.png"),colored_picPath=os.path.join(path,"reRender5120_colored.png"))    
 
     # jax.config.update("jax_enable_x64", True)

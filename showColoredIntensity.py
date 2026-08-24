@@ -59,5 +59,5 @@ def readFromImg(path,savePath=None):
     renderColoredIntensity(matrix,savePath)
         
 if __name__ == "__main__":
-    readFromImg("/data/wzr/Freeform2013_jax/result_final/zju_57_800_gamma1.0/targetImg.png")
+    readFromImg("./result_final/zju_57_800_gamma1.0/targetImg.png")
     

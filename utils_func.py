@@ -148,7 +148,7 @@ def compareTwoImg(path1,path2):
 def put4picturesTogether(mode=1):
     if(mode==1):
         pic1=cv2.imread(cfg.render_picname)
-        #pic1=cv2.imread("/home/wzr/Freeform2013_jax/result_new/blbl_57_256_gamma1.0/reRender1280.png")
+        #pic1=cv2.imread("./result_new/blbl_57_256_gamma1.0/reRender1280.png")
         pic2=cv2.imread(cfg.render_picname_afterOpt)
         pic3=cv2.imread(cfg.render_picname_afterOptAlter)
         pic4=cv2.imread(cfg.render_picname_allTogether)
@@ -186,7 +186,7 @@ def integrateReadFromDict(path=cfg.createDictName("train_Init")):
     
     
 if __name__ == "__main__":
-    path = "/data/wzr/Freeform2013_jax/result_final/mao_59_512_gamma1.0/"
+    path = "./result_final/mao_59_512_gamma1.0/"
     Pij, surface, img_dict = integrateReadFromDict(
         path+"OT_dict_test_train_Init_forOnlyOT.npy")
     writeToObj(surface, Pij, path+"init.obj", 400, 400)
